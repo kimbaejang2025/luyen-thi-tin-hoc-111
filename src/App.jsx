@@ -34,6 +34,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [examCategoryFilter, setExamCategoryFilter] = useState('all');
   const [subYearFilter, setSubYearFilter] = useState('all');
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -129,6 +130,9 @@ export default function App() {
     if (sessionUser) {
       setCurrentUser(JSON.parse(sessionUser));
     }
+
+    // Set data loaded flag
+    setDataLoaded(true);
   }, []);
 
   // --- Auth Handlers ---
@@ -147,7 +151,7 @@ export default function App() {
     setCurrentUser(null);
     sessionStorage.removeItem('thpt_tin_session_user');
     if (activeTab === 'admin') {
-      setActiveTab('home');
+      navigateTo('home', null, null, false);
     }
   };
 
@@ -205,10 +209,81 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
+  // --- Navigation Router with History Support ---
+  const navigateTo = (tab, topic = null, exam = null, html = false) => {
+    // Check if the state is actually different to avoid pushing duplicate history entries
+    const currentHistoryState = window.history.state;
+    const isSameState = currentHistoryState &&
+      currentHistoryState.activeTab === tab &&
+      currentHistoryState.selectedTopicId === (topic ? topic.id : null) &&
+      currentHistoryState.selectedExamId === (exam ? exam.id : null) &&
+      currentHistoryState.viewOriginalHtml === html;
+
+    if (isSameState) {
+      return;
+    }
+
+    setActiveTab(tab);
+    setSelectedTopic(topic);
+    setSelectedExam(exam);
+    setViewOriginalHtml(html);
+
+    window.history.pushState({
+      activeTab: tab,
+      selectedTopicId: topic ? topic.id : null,
+      selectedExamId: exam ? exam.id : null,
+      viewOriginalHtml: html
+    }, '');
+  };
+
+  useEffect(() => {
+    if (!dataLoaded) return;
+
+    // Set initial history state if it doesn't exist
+    const defaultState = {
+      activeTab: 'home',
+      selectedTopicId: null,
+      selectedExamId: null,
+      viewOriginalHtml: false
+    };
+
+    const curState = window.history.state;
+    if (!curState || typeof curState !== 'object' || !('activeTab' in curState)) {
+      window.history.replaceState(defaultState, '');
+    } else {
+      // If there is already a state on load (e.g. page refresh), restore it
+      const savedState = window.history.state;
+      const topic = savedState.selectedTopicId ? topics.find(t => t.id === savedState.selectedTopicId) : null;
+      const exam = savedState.selectedExamId ? exams.find(e => e.id === savedState.selectedExamId) : null;
+      
+      setActiveTab(savedState.activeTab || 'home');
+      setSelectedTopic(topic || null);
+      setSelectedExam(exam || null);
+      setViewOriginalHtml(!!savedState.viewOriginalHtml);
+    }
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state && typeof state === 'object' && 'activeTab' in state) {
+        const topic = state.selectedTopicId ? topics.find(t => t.id === state.selectedTopicId) : null;
+        const exam = state.selectedExamId ? exams.find(e => e.id === state.selectedExamId) : null;
+        
+        setActiveTab(state.activeTab || 'home');
+        setSelectedTopic(topic || null);
+        setSelectedExam(exam || null);
+        setViewOriginalHtml(!!state.viewOriginalHtml);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [dataLoaded, topics, exams]);
+
   // --- Navigation Wrappers ---
   const handleSelectTopic = (topic) => {
-    setSelectedTopic(topic);
-    setActiveTab('topics');
+    navigateTo('topics', topic, null, false);
   };
 
   const handleStartExam = (exam, useHtml = false) => {
@@ -217,8 +292,7 @@ export default function App() {
       setIsAuthModalOpen(true);
       return;
     }
-    setSelectedExam(exam);
-    setViewOriginalHtml(!!useHtml);
+    navigateTo(activeTab, selectedTopic, exam, !!useHtml);
   };
 
   // --- Filter and Search ---
@@ -249,6 +323,17 @@ export default function App() {
     docsCount: documents.length
   };
 
+  const getIframeUrl = (exam) => {
+    const url = exam.htmlUrl || "/dethi_2026.html";
+    const base = import.meta.env.BASE_URL || "/";
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+    return `${cleanBase}${cleanUrl}`;
+  };
+
   return (
     <div className="app-container">
       {/* Decorative background glows */}
@@ -259,10 +344,7 @@ export default function App() {
       <Navbar 
         activeTab={activeTab} 
         setActiveTab={(tab) => {
-          setActiveTab(tab);
-          setSelectedTopic(null);
-          setSelectedExam(null);
-          setViewOriginalHtml(false);
+          navigateTo(tab, null, null, false);
           setSubYearFilter('all');
         }} 
         currentUser={currentUser}
@@ -282,7 +364,7 @@ export default function App() {
               exam={selectedExam}
               currentUser={currentUser}
               onFinish={handleFinishExam}
-              onBack={() => setSelectedExam(null)}
+              onBack={() => navigateTo(activeTab, selectedTopic, null, false)}
             />
           )
         ) : (
@@ -291,15 +373,15 @@ export default function App() {
             {activeTab === 'home' && (
               <div>
                 <Hero 
-                  onStartStudy={() => setActiveTab('topics')} 
-                  onStartExam={() => setActiveTab('exams')}
+                  onStartStudy={() => navigateTo('topics', null, null, false)} 
+                  onStartExam={() => navigateTo('exams', null, null, false)}
                   stats={stats}
                 />
                 
                 {/* Compact Topics Section on Home */}
                 <div className="section-header">
                   <h2 className="section-title">Chủ đề kiến thức trọng tâm</h2>
-                  <button className="btn btn-secondary" onClick={() => setActiveTab('topics')}>
+                  <button className="btn btn-secondary" onClick={() => navigateTo('topics', null, null, false)}>
                     Xem tất cả
                   </button>
                 </div>
@@ -322,7 +404,7 @@ export default function App() {
                 {selectedTopic ? (
                   <TopicDetail 
                     topic={selectedTopic} 
-                    onBack={() => setSelectedTopic(null)} 
+                    onBack={() => navigateTo('topics', null, null, false)} 
                   />
                 ) : (
                   <div>
@@ -595,7 +677,7 @@ export default function App() {
         }}>
           {/* Close button X in top-left */}
           <button 
-            onClick={() => { setSelectedExam(null); setViewOriginalHtml(false); }} 
+            onClick={() => navigateTo(activeTab, selectedTopic, null, false)} 
             title="Thoát và quay lại"
             style={{
               position: 'absolute',
@@ -633,7 +715,7 @@ export default function App() {
           </button>
           
           <iframe 
-            src={selectedExam.htmlUrl || "/dethi_2026.html"} 
+            src={getIframeUrl(selectedExam)} 
             style={{ 
               width: '100%', 
               height: '100%', 
