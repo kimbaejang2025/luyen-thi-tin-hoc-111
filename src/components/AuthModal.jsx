@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient'; // Cầu nối Supabase của thầy
+import { supabase } from '../supabaseClient';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [tenDangNhap, setTenDangNhap] = useState('');
@@ -14,72 +14,63 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     setError('');
 
     if (!tenDangNhap || !matKhau) {
-      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!');
+      setError('Vui lòng điền đầy đủ thông tin!');
+      return;
+    }
+
+    // 👑 KIỂM TRA QUYỀN ADMIN (CỤC BỘ) ĐỂ TRÁNH BỊ KHÓA KHỎI HỆ THỐNG
+    if (tenDangNhap === 'admin' && matKhau === 'admin123') {
+      const adminData = {
+        id: 'admin_default',
+        ho_ten: 'Quản Trị Viên',
+        ten_dang_nhap: 'admin',
+        mat_khau: 'admin123',
+        role: 'admin',
+        session_id: 'admin_session'
+      };
+      localStorage.setItem('current_student', JSON.stringify(adminData));
+      if (onLoginSuccess) onLoginSuccess(adminData);
+      onClose();
       return;
     }
 
     setLoading(true);
 
     try {
-      // 👑 KIỂM TRA QUYỀN ADMIN (CỤC BỘ) ĐỂ TRÁNH BỊ KHÓA KHỎI HỆ THỐNG
-      if (tenDangNhap.trim().toLowerCase() === 'admin' && matKhau.trim() === 'admin123') {
-        const adminData = {
-          id: 'admin_default',
-          name: 'Quản Trị Viên',
-          username: 'admin',
-          password: 'admin123',
-          role: 'admin',
-          loginCount: 1,
-          history: []
-        };
-        localStorage.setItem('current_student', JSON.stringify(adminData));
-        if (onLoginSuccess) {
-          onLoginSuccess(adminData);
-        }
-        onClose();
-        return;
-      }
-
-      // 🚀 BƯỚC QUAN TRỌNG: Quét và nhận diện tài khoản trong bảng hoc_vien
+      // 🚀 YÊU CẦU 1: So khớp chính xác 100% từng ký tự viết HOA - viết thường
       const { data, error: dbError } = await supabase
         .from('hoc_vien')
         .select('*')
-        .eq('ten_dang_nhap', tenDangNhap.trim().toLowerCase())
-        .eq('mat_khau', matKhau.trim()); // So khớp cả 2 điều kiện cùng lúc
+        .eq('ten_dang_nhap', tenDangNhap) // Giữ nguyên chữ thầy gõ, không dùng .toLowerCase()
+        .eq('mat_khau', matKhau);
 
       if (dbError) throw dbError;
 
-      // 🚀 ĐOẠN CODE KHI ĐỐI CHIẾU TÀI KHOẢN THÀNH CÔNG:
       if (data && data.length > 0) {
         const studentData = data[0];
 
-        // 1. Tạo một mã phiên đăng nhập ngẫu nhiên duy nhất cho thiết bị này
+        // 🚀 YÊU CẦU 2: Sinh mã phiên đăng nhập ngẫu nhiên (Duy nhất cho thiết bị này)
         const newSessionId = 'ss_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
-        // 2. Gửi lệnh UPDATE lên Supabase để ghi đè mã mới này vào tài khoản của em đó
+        // Đẩy mã mới này lên đè vào tài khoản trên Supabase
         const { error: updateError } = await supabase
           .from('hoc_vien')
-          .update({ session_id: newSessionId }) // Cập nhật mã mới lên đám mây
+          .update({ session_id: newSessionId })
           .eq('id', studentData.id);
 
         if (updateError) throw updateError;
 
-        // 3. Cập nhật mã này vào object để lưu xuống máy học sinh hiện tại
+        // Lưu thông tin phiên mới xuống máy hiện tại
         studentData.session_id = newSessionId;
         localStorage.setItem('current_student', JSON.stringify(studentData));
 
-        if (onLoginSuccess) {
-          onLoginSuccess(studentData);
-        }
+        if (onLoginSuccess) onLoginSuccess(studentData);
         onClose();
       } else {
-        // Nếu không tìm thấy ai trùng khớp
-        setError('Tên đăng nhập hoặc mật khẩu không chính xác!');
+        setError('Tên đăng nhập hoặc mật khẩu không chính xác! (Vui lòng kiểm tra kỹ chữ HOA/thường)');
       }
-
     } catch (err) {
-      console.error(err);
-      setError('Lỗi kết nối hệ thống: ' + err.message);
+      setError('Lỗi hệ thống: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -87,50 +78,21 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ position: 'relative' }}>
-        <button className="close-btn" onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button>
-
-        <h2 style={{ color: '#fff', textAlign: 'center', marginBottom: '20px' }}>Đăng Nhập Hệ Thống</h2>
-
-        {error && <p style={{ color: '#ef4444', textAlign: 'center', fontSize: '14px', marginBottom: '15px' }}>{error}</p>}
-
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ color: '#9ca3af' }}>Tên đăng nhập</label>
-            <input
-              type="text"
-              placeholder="Nhập tên đăng nhập..."
-              value={tenDangNhap}
-              onChange={(e) => setTenDangNhap(e.target.value)}
-              style={{ padding: '12px', borderRadius: '8px', border: '1px solid #232d3f', backgroundColor: '#090d14', color: '#fff', outline: 'none' }}
-            />
+      <div className="modal-content">
+        <button className="close-btn" onClick={onClose}>✕</button>
+        <h2 className="modal-title">Đăng Nhập Hệ Thống</h2>
+        {error && <p className="error-text" style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
+        
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Tên đăng nhập</label>
+            <input type="text" value={tenDangNhap} onChange={(e) => setTenDangNhap(e.target.value)} required />
           </div>
-
-          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ color: '#9ca3af' }}>Mật khẩu</label>
-            <input
-              type="text"
-              placeholder="Nhập mật khẩu..."
-              value={matKhau}
-              onChange={(e) => setMatKhau(e.target.value)}
-              style={{ 
-                padding: '12px', 
-                borderRadius: '8px', 
-                border: '1px solid #232d3f', 
-                backgroundColor: '#090d14', 
-                color: '#fff', 
-                outline: 'none',
-                WebkitTextSecurity: 'disc'
-              }}
-              autoComplete="new-password"
-            />
+          <div className="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" value={matKhau} onChange={(e) => setMatKhau(e.target.value)} required />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: '#5d6cfc', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
-          >
+          <button type="submit" className="btn-submit-form" disabled={loading}>
             {loading ? "Đang xử lý..." : "Đăng nhập ngay"}
           </button>
         </form>

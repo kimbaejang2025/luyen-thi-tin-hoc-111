@@ -159,33 +159,28 @@ export default function App() {
     setDataLoaded(true);
   }, []);
 
+  // 🚀 YÊU CẦU 2: Vòng lặp kiểm tra thiết bị thứ 2 đăng nhập để tự động kích văng thiết bị 1
   useEffect(() => {
-    // Nếu chưa có học sinh nào đăng nhập thì không cần kiểm tra
-    if (!currentUser || currentUser.role === 'admin') return;
+    if (!currentUser) return;
 
-    // Thiết lập vòng lặp cứ mỗi 5 giây (5000ms) sẽ kiểm tra 1 lần
     const checkSessionInterval = setInterval(async () => {
-      
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('hoc_vien')
         .select('session_id')
         .eq('id', currentUser.id);
 
       if (data && data.length > 0) {
         const serverSessionId = data[0].session_id;
-
-        // 🚨 NẾU MÃ TRÊN MÁY KHÁC MÃ TRÊN CLOUD (Do có thiết bị mới vào sinh ra mã mới)
+        
+        // Nếu mã trên đám mây đã bị thiết bị khác thay đổi
         if (serverSessionId !== currentUser.session_id) {
-          alert("Tài khoản của bạn vừa đăng nhập ở một thiết bị khác. Bạn sẽ bị đăng xuất!");
-          
-          // Tiến hành xóa bộ nhớ và đăng xuất ngay lập tức
+          alert("Tài khoản của thầy/trò vừa được đăng nhập ở thiết bị khác. Hệ thống sẽ tự động thoát!");
           clearInterval(checkSessionInterval);
-          handleLogout(); 
+          handleLogout();
         }
       }
-    }, 5000); // Thầy có thể chỉnh lên 10000 (10 giây) để giảm tải cho database nếu muốn
+    }, 5000); // 5 giây quét 1 lần
 
-    // Dọn dẹp vòng lặp khi học sinh chủ động bấm đăng xuất
     return () => clearInterval(checkSessionInterval);
   }, [currentUser]);
 
@@ -709,12 +704,8 @@ export default function App() {
             {/* --- ADMIN DASHBOARD --- */}
             {activeTab === 'admin' && currentUser && currentUser.role === 'admin' && (
               <DashboardAdmin 
-                users={users}
-                onUpdateUsers={handleUpdateUsers}
-                exams={exams}
-                onUpdateExams={handleUpdateExams}
-                documents={documents}
-                onUpdateDocuments={handleUpdateDocuments}
+                currentAdmin={currentUser}
+                onAdminUpdated={(newData) => setCurrentUser(newData)}
               />
             )}
           </>
