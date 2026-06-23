@@ -1198,7 +1198,7 @@ export const seedUsers = [
     id: "admin_default",
     name: "Quản Trị Viên",
     username: "admin",
-    password: "admin123",
+    password: "Ltiger321270891",
     role: "admin",
     loginCount: 15,
     history: []

@@ -19,12 +19,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     }
 
     // 👑 KIỂM TRA QUYỀN ADMIN (CỤC BỘ) ĐỂ TRÁNH BỊ KHÓA KHỎI HỆ THỐNG
-    if (tenDangNhap === 'admin' && matKhau === 'admin123') {
+    if (tenDangNhap === 'admin' && matKhau === 'Ltiger321270891') {
       const adminData = {
         id: 'admin_default',
         ho_ten: 'Quản Trị Viên',
         ten_dang_nhap: 'admin',
-        mat_khau: 'admin123',
+        mat_khau: 'Ltiger321270891',
         role: 'admin',
         session_id: 'admin_session'
       };
