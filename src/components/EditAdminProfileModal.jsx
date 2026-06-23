@@ -51,14 +51,43 @@ export default function EditAdminProfileModal({ isOpen, onClose, onAdminUpdated 
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
-        <button className="close-btn" onClick={onClose}>✕</button>
+      <div className="glass-card modal-card">
+        <button className="modal-close" onClick={onClose}>✕</button>
         <h2 className="modal-title">Cấu Hình Tài Khoản Admin</h2>
         <form onSubmit={handleUpdateAdmin}>
-          <div className="form-group"><label>Họ và tên Admin</label><input type="text" value={hoTen} onChange={(e) => setHoTen(e.target.value)} required /></div>
-          <div className="form-group"><label>Tên đăng nhập Admin</label><input type="text" value={tenDangNhap} onChange={(e) => setTenDangNhap(e.target.value)} required /></div>
-          <div className="form-group"><label>Mật khẩu mới Admin</label><input type="text" value={matKhau} onChange={(e) => setMatKhau(e.target.value)} required /></div>
-          <button type="submit" className="btn-submit-form" disabled={loading}>{loading ? "Đang lưu..." : "Lưu thay đổi Admin"}</button>
+          <div className="form-group">
+            <label className="form-label">Họ và tên Admin</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={hoTen} 
+              onChange={(e) => setHoTen(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tên đăng nhập Admin</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={tenDangNhap} 
+              onChange={(e) => setTenDangNhap(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Mật khẩu mới Admin</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={matKhau} 
+              onChange={(e) => setMatKhau(e.target.value)} 
+              required 
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} disabled={loading}>
+            {loading ? "Đang lưu..." : "Lưu thay đổi Admin"}
+          </button>
         </form>
       </div>
     </div>

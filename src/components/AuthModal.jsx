@@ -78,21 +78,33 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
-        <button className="close-btn" onClick={onClose}>✕</button>
+      <div className="glass-card modal-card">
+        <button className="modal-close" onClick={onClose}>✕</button>
         <h2 className="modal-title">Đăng Nhập Hệ Thống</h2>
-        {error && <p className="error-text" style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
+        {error && <p className="error-text" style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</p>}
         
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label>Tên đăng nhập</label>
-            <input type="text" value={tenDangNhap} onChange={(e) => setTenDangNhap(e.target.value)} required />
+            <label className="form-label">Tên đăng nhập</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={tenDangNhap} 
+              onChange={(e) => setTenDangNhap(e.target.value)} 
+              required 
+            />
           </div>
           <div className="form-group">
-            <label>Mật khẩu</label>
-            <input type="password" value={matKhau} onChange={(e) => setMatKhau(e.target.value)} required />
+            <label className="form-label">Mật khẩu</label>
+            <input 
+              type="password" 
+              className="form-input"
+              value={matKhau} 
+              onChange={(e) => setMatKhau(e.target.value)} 
+              required 
+            />
           </div>
-          <button type="submit" className="btn-submit-form" disabled={loading}>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} disabled={loading}>
             {loading ? "Đang xử lý..." : "Đăng nhập ngay"}
           </button>
         </form>

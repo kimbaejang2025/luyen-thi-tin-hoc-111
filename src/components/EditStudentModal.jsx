@@ -42,15 +42,53 @@ export default function EditStudentModal({ isOpen, onClose, studentData, onRefre
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
-        <button className="close-btn" onClick={onClose}>✕</button>
+      <div className="glass-card modal-card">
+        <button className="modal-close" onClick={onClose}>✕</button>
         <h2 className="modal-title">Sửa Thông Tin Học Viên</h2>
         <form onSubmit={handleUpdate}>
-          <div className="form-group"><label>Họ và tên</label><input type="text" value={hoTen} onChange={(e) => setHoTen(e.target.value)} required /></div>
-          <div className="form-group"><label>Lớp</label><input type="text" value={lop} onChange={(e) => setLop(e.target.value)} required /></div>
-          <div className="form-group"><label>Tên đăng nhập</label><input type="text" value={tenDangNhap} onChange={(e) => setTenDangNhap(e.target.value)} required /></div>
-          <div className="form-group"><label>Mật khẩu</label><input type="text" value={matKhau} onChange={(e) => setMatKhau(e.target.value)} required /></div>
-          <button type="submit" className="btn-submit-form" disabled={loading}>{loading ? "Đang lưu..." : "Xác nhận cập nhật"}</button>
+          <div className="form-group">
+            <label className="form-label">Họ và tên</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={hoTen} 
+              onChange={(e) => setHoTen(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Lớp</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={lop} 
+              onChange={(e) => setLop(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tên đăng nhập</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={tenDangNhap} 
+              onChange={(e) => setTenDangNhap(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Mật khẩu</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={matKhau} 
+              onChange={(e) => setMatKhau(e.target.value)} 
+              required 
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} disabled={loading}>
+            {loading ? "Đang lưu..." : "Xác nhận cập nhật"}
+          </button>
         </form>
       </div>
     </div>
