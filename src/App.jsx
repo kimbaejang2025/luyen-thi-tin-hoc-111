@@ -192,7 +192,7 @@ export default function App() {
       className: user.className || user.lop || '',
       username: (user.username || user.ten_dang_nhap || '').toLowerCase(),
       password: user.password || user.mat_khau || '',
-      role: user.role || 'user',
+      role: user.role || (((user.username || user.ten_dang_nhap || '').toLowerCase() === 'admin') ? 'admin' : 'user'),
       loginCount: (user.loginCount || 0) + 1,
       history: user.history || [],
       session_id: user.session_id || null

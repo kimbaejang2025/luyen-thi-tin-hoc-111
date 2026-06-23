@@ -18,22 +18,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       return;
     }
 
-    // 👑 KIỂM TRA QUYỀN ADMIN (CỤC BỘ) ĐỂ TRÁNH BỊ KHÓA KHỎI HỆ THỐNG
-    if (tenDangNhap === 'admin' && matKhau === 'Ltiger321270891') {
-      const adminData = {
-        id: 'admin_default',
-        ho_ten: 'Quản Trị Viên',
-        ten_dang_nhap: 'admin',
-        mat_khau: 'Ltiger321270891',
-        role: 'admin',
-        session_id: 'admin_session'
-      };
-      localStorage.setItem('current_student', JSON.stringify(adminData));
-      if (onLoginSuccess) onLoginSuccess(adminData);
-      onClose();
-      return;
-    }
-
     setLoading(true);
 
     try {
