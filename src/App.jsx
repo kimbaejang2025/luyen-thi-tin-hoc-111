@@ -9,7 +9,7 @@ import AuthModal from './components/AuthModal';
 import RelaxSection from './components/RelaxSection';
 import { Icon } from './components/Icons';
 import StudentDashboard from './components/StudentDashboard';
-
+import { supabase } from './supabaseClient';
 
 import { 
   seedTopics, 
@@ -159,6 +159,36 @@ export default function App() {
     setDataLoaded(true);
   }, []);
 
+  useEffect(() => {
+    // Nếu chưa có học sinh nào đăng nhập thì không cần kiểm tra
+    if (!currentUser || currentUser.role === 'admin') return;
+
+    // Thiết lập vòng lặp cứ mỗi 5 giây (5000ms) sẽ kiểm tra 1 lần
+    const checkSessionInterval = setInterval(async () => {
+      
+      const { data, error } = await supabase
+        .from('hoc_vien')
+        .select('session_id')
+        .eq('id', currentUser.id);
+
+      if (data && data.length > 0) {
+        const serverSessionId = data[0].session_id;
+
+        // 🚨 NẾU MÃ TRÊN MÁY KHÁC MÃ TRÊN CLOUD (Do có thiết bị mới vào sinh ra mã mới)
+        if (serverSessionId !== currentUser.session_id) {
+          alert("Tài khoản của bạn vừa đăng nhập ở một thiết bị khác. Bạn sẽ bị đăng xuất!");
+          
+          // Tiến hành xóa bộ nhớ và đăng xuất ngay lập tức
+          clearInterval(checkSessionInterval);
+          handleLogout(); 
+        }
+      }
+    }, 5000); // Thầy có thể chỉnh lên 10000 (10 giây) để giảm tải cho database nếu muốn
+
+    // Dọn dẹp vòng lặp khi học sinh chủ động bấm đăng xuất
+    return () => clearInterval(checkSessionInterval);
+  }, [currentUser]);
+
   // --- Auth Handlers ---
   const handleLogin = (user) => {
     const normalizedUser = {
@@ -169,7 +199,8 @@ export default function App() {
       password: user.password || user.mat_khau || '',
       role: user.role || 'user',
       loginCount: (user.loginCount || 0) + 1,
-      history: user.history || []
+      history: user.history || [],
+      session_id: user.session_id || null
     };
 
     const userExists = users.some(u => u.id === normalizedUser.id || u.username.toLowerCase() === normalizedUser.username.toLowerCase());
@@ -183,7 +214,8 @@ export default function App() {
             loginCount: (u.loginCount || 0) + 1,
             name: normalizedUser.name,
             className: normalizedUser.className,
-            password: normalizedUser.password
+            password: normalizedUser.password,
+            session_id: normalizedUser.session_id
           };
         }
         return u;
