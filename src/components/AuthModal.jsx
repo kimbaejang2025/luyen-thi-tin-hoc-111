@@ -49,19 +49,28 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
       if (dbError) throw dbError;
 
-      // Nếu mảng dữ liệu trả về có phần tử -> Tài khoản đúng!
+      // 🚀 ĐOẠN CODE KHI ĐỐI CHIẾU TÀI KHOẢN THÀNH CÔNG:
       if (data && data.length > 0) {
-        const studentData = data[0]; // Lấy thông tin học sinh tìm được
+        const studentData = data[0];
 
-        // 1. Lưu thông tin em này vào LocalStorage để tránh bị đăng xuất khi reload trang
+        // 1. Tạo một mã phiên đăng nhập ngẫu nhiên duy nhất cho thiết bị này
+        const newSessionId = 'ss_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+
+        // 2. Gửi lệnh UPDATE lên Supabase để ghi đè mã mới này vào tài khoản của em đó
+        const { error: updateError } = await supabase
+          .from('hoc_vien')
+          .update({ session_id: newSessionId }) // Cập nhật mã mới lên đám mây
+          .eq('id', studentData.id);
+
+        if (updateError) throw updateError;
+
+        // 3. Cập nhật mã này vào object để lưu xuống máy học sinh hiện tại
+        studentData.session_id = newSessionId;
         localStorage.setItem('current_student', JSON.stringify(studentData));
 
-        // 2. Kích hoạt hàm báo đăng nhập thành công lên Component cha (App.jsx)
         if (onLoginSuccess) {
           onLoginSuccess(studentData);
         }
-
-        // 3. Đóng form đăng nhập
         onClose();
       } else {
         // Nếu không tìm thấy ai trùng khớp
