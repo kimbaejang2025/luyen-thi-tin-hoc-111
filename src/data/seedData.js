@@ -1178,9 +1178,11 @@ export const seedUsers = [
   {
     id: "user_default",
     name: "Học Viên Mẫu",
+    className: "12A1",
     username: "hocvien",
     password: "user123",
     role: "user",
+    loginCount: 3,
     history: [
       {
         examId: "exam_minhhoa_2026",
@@ -1198,6 +1200,7 @@ export const seedUsers = [
     username: "admin",
     password: "admin123",
     role: "admin",
+    loginCount: 15,
     history: []
   }
 ];

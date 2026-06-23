@@ -1271,3 +1271,29 @@ button, input, select, textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Custom tags for students --- */
+.class-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--bg-active);
+  color: var(--color-primary);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.login-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--color-secondary);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

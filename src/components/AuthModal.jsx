@@ -1,192 +1,130 @@
-import React, { useState } from 'react';
-import { Icon } from './Icons';
+import { useState } from 'react';
+import { supabase } from '../supabaseClient'; // Cầu nối Supabase của thầy
 
-export default function AuthModal({ isOpen, onClose, onLogin, onRegister, registeredUsers }) {
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    username: '',
-    password: '',
-    confirmPassword: ''
-  });
+export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
+  const [tenDangNhap, setTenDangNhap] = useState('');
+  const [matKhau, setMatKhau] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setError('');
-  };
-
-  const handleSubmit = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const { name, username, password, confirmPassword } = formData;
+    setError('');
 
-    if (!username.trim() || !password) {
-      setError('Vui lòng điền đầy đủ tên đăng nhập và mật khẩu!');
+    if (!tenDangNhap || !matKhau) {
+      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!');
       return;
     }
 
-    if (isLoginMode) {
-      // Login flow
-      const user = registeredUsers.find(
-        u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
-      );
-      
-      if (user) {
-        onLogin(user);
-        handleClose();
+    setLoading(true);
+
+    try {
+      // 👑 KIỂM TRA QUYỀN ADMIN (CỤC BỘ) ĐỂ TRÁNH BỊ KHÓA KHỎI HỆ THỐNG
+      if (tenDangNhap.trim().toLowerCase() === 'admin' && matKhau.trim() === 'admin123') {
+        const adminData = {
+          id: 'admin_default',
+          name: 'Quản Trị Viên',
+          username: 'admin',
+          password: 'admin123',
+          role: 'admin',
+          loginCount: 1,
+          history: []
+        };
+        localStorage.setItem('current_student', JSON.stringify(adminData));
+        if (onLoginSuccess) {
+          onLoginSuccess(adminData);
+        }
+        onClose();
+        return;
+      }
+
+      // 🚀 BƯỚC QUAN TRỌNG: Quét và nhận diện tài khoản trong bảng hoc_vien
+      const { data, error: dbError } = await supabase
+        .from('hoc_vien')
+        .select('*')
+        .eq('ten_dang_nhap', tenDangNhap.trim().toLowerCase())
+        .eq('mat_khau', matKhau.trim()); // So khớp cả 2 điều kiện cùng lúc
+
+      if (dbError) throw dbError;
+
+      // Nếu mảng dữ liệu trả về có phần tử -> Tài khoản đúng!
+      if (data && data.length > 0) {
+        const studentData = data[0]; // Lấy thông tin học sinh tìm được
+
+        // 1. Lưu thông tin em này vào LocalStorage để tránh bị đăng xuất khi reload trang
+        localStorage.setItem('current_student', JSON.stringify(studentData));
+
+        // 2. Kích hoạt hàm báo đăng nhập thành công lên Component cha (App.jsx)
+        if (onLoginSuccess) {
+          onLoginSuccess(studentData);
+        }
+
+        // 3. Đóng form đăng nhập
+        onClose();
       } else {
+        // Nếu không tìm thấy ai trùng khớp
         setError('Tên đăng nhập hoặc mật khẩu không chính xác!');
       }
-    } else {
-      // Register flow
-      if (!name.trim()) {
-        setError('Vui lòng điền họ và tên!');
-        return;
-      }
-      
-      if (password.length < 6) {
-        setError('Mật khẩu phải dài ít nhất 6 ký tự!');
-        return;
-      }
 
-      if (password !== confirmPassword) {
-        setError('Mật khẩu xác nhận không trùng khớp!');
-        return;
-      }
-
-      const userExists = registeredUsers.some(
-        u => u.username.toLowerCase() === username.trim().toLowerCase()
-      );
-
-      if (userExists) {
-        setError('Tên đăng nhập này đã tồn tại trên hệ thống!');
-        return;
-      }
-
-      const newUser = {
-        id: 'user_' + Date.now(),
-        name: name.trim(),
-        username: username.trim().toLowerCase(),
-        password: password,
-        role: 'user',
-        history: []
-      };
-
-      onRegister(newUser);
-      setIsLoginMode(true);
-      setError('');
-      alert('Đăng ký tài khoản học viên thành công! Hãy đăng nhập ngay.');
+    } catch (err) {
+      console.error(err);
+      setError('Lỗi kết nối hệ thống: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setFormData({ name: '', username: '', password: '', confirmPassword: '' });
-    setError('');
-    onClose();
-  };
-
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="glass-card modal-card" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={handleClose}>
-          <Icon name="X" style={{ width: '20px', height: '20px' }} />
-        </button>
-        
-        <h2 className="modal-title">
-          {isLoginMode ? 'Đăng Nhập Hệ Thống' : 'Đăng Ký Học Viên'}
-        </h2>
-        <p className="modal-desc">
-          {isLoginMode 
-            ? 'Hãy đăng nhập để lưu kết quả thi thử và lịch sử học tập.' 
-            : 'Đăng ký tài khoản nhanh chóng để tham gia luyện thi trực tuyến.'
-          }
-        </p>
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ position: 'relative' }}>
+        <button className="close-btn" onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button>
 
-        <form onSubmit={handleSubmit}>
-          {error && <div className="form-error text-center" style={{ marginBottom: '16px', color: 'var(--color-danger)' }}>{error}</div>}
-          
-          {!isLoginMode && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-name">Họ và tên</label>
-              <input
-                id="reg-name"
-                type="text"
-                name="name"
-                className="form-input"
-                placeholder="Nhập họ và tên học viên..."
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          )}
+        <h2 style={{ color: '#fff', textAlign: 'center', marginBottom: '20px' }}>Đăng Nhập Hệ Thống</h2>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="auth-username">Tên đăng nhập</label>
+        {error && <p style={{ color: '#ef4444', textAlign: 'center', fontSize: '14px', marginBottom: '15px' }}>{error}</p>}
+
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label style={{ color: '#9ca3af' }}>Tên đăng nhập</label>
             <input
-              id="auth-username"
               type="text"
-              name="username"
-              className="form-input"
               placeholder="Nhập tên đăng nhập..."
-              value={formData.username}
-              onChange={handleInputChange}
-              required
+              value={tenDangNhap}
+              onChange={(e) => setTenDangNhap(e.target.value)}
+              style={{ padding: '12px', borderRadius: '8px', border: '1px solid #232d3f', backgroundColor: '#090d14', color: '#fff', outline: 'none' }}
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="auth-password">Mật khẩu</label>
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label style={{ color: '#9ca3af' }}>Mật khẩu</label>
             <input
-              id="auth-password"
-              type="password"
-              name="password"
-              className="form-input"
+              type="text"
               placeholder="Nhập mật khẩu..."
-              value={formData.password}
-              onChange={handleInputChange}
-              required
+              value={matKhau}
+              onChange={(e) => setMatKhau(e.target.value)}
+              style={{ 
+                padding: '12px', 
+                borderRadius: '8px', 
+                border: '1px solid #232d3f', 
+                backgroundColor: '#090d14', 
+                color: '#fff', 
+                outline: 'none',
+                WebkitTextSecurity: 'disc'
+              }}
+              autoComplete="new-password"
             />
           </div>
 
-          {!isLoginMode && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="reg-confirm-pass">Xác nhận mật khẩu</label>
-              <input
-                id="reg-confirm-pass"
-                type="password"
-                name="confirmPassword"
-                className="form-input"
-                placeholder="Nhập lại mật khẩu..."
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          )}
-
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '12px' }}>
-            <Icon name={isLoginMode ? 'User' : 'Plus'} style={{ width: '18px', height: '18px' }} />
-            {isLoginMode ? 'Đăng nhập ngay' : 'Đăng ký tài khoản'}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: '#5d6cfc', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
+          >
+            {loading ? "Đang xử lý..." : "Đăng nhập ngay"}
           </button>
         </form>
-
-        <div className="auth-switch">
-          {isLoginMode ? (
-            <>
-              Chưa có tài khoản học viên?{' '}
-              <span onClick={() => { setIsLoginMode(false); setError(''); }}>Đăng ký ngay</span>
-            </>
-          ) : (
-            <>
-              Đã có tài khoản?{' '}
-              <span onClick={() => { setIsLoginMode(true); setError(''); }}>Đăng nhập</span>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );

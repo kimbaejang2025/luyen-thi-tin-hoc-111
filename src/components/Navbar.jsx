@@ -1,7 +1,8 @@
 import React from 'react';
 import { Icon } from './Icons';
 
-export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout, onOpenLogin, theme, toggleTheme }) {
+export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout, onOpenLogin, theme, toggleTheme, student }) {
+  const user = student || currentUser;
   return (
     <div className="navbar-wrapper">
       <nav className="navbar">
@@ -35,7 +36,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout,
           >
             Thư giãn
           </div>
-          {currentUser && currentUser.role === 'admin' && (
+          {user && user.role === 'admin' && (
             <div 
               className={`nav-link ${activeTab === 'admin' ? 'active' : ''}`}
               onClick={() => setActiveTab('admin')}
@@ -51,12 +52,12 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout,
             {theme === 'dark' ? <Icon name="Sun" /> : <Icon name="Moon" />}
           </button>
           
-          {currentUser ? (
+          {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div className="user-badge">
                 <Icon name="User" style={{ width: '16px', height: '16px', color: 'var(--color-primary)' }} />
-                <span>{currentUser.name}</span>
-                {currentUser.role === 'admin' ? (
+                <span>{user.name || user.ho_ten}</span>
+                {user.role === 'admin' ? (
                   <span className="status-badge status-badge-admin">Admin</span>
                 ) : (
                   <span className="status-badge status-badge-user">Học viên</span>

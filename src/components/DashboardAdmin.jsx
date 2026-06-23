@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from './Icons';
+import { supabase } from '../supabaseClient';
 
 export default function DashboardAdmin({ 
   users, 
@@ -14,7 +15,7 @@ export default function DashboardAdmin({
   // States for CRUD Users
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null); // null if adding
-  const [userFormData, setUserFormData] = useState({ name: '', username: '', password: '' });
+  const [userFormData, setUserFormData] = useState({ name: '', className: '', username: '', password: '' });
   
   // States for CRUD Exams
   const [showExamForm, setShowExamForm] = useState(false);
@@ -38,17 +39,17 @@ export default function DashboardAdmin({
   /* --- USER CRUD HANDLERS --- */
   const handleOpenAddUser = () => {
     setEditingUser(null);
-    setUserFormData({ name: '', username: '', password: '' });
+    setUserFormData({ name: '', className: '', username: '', password: '' });
     setShowUserModal(true);
   };
 
   const handleOpenEditUser = (user) => {
     setEditingUser(user);
-    setUserFormData({ name: user.name, username: user.username, password: user.password });
+    setUserFormData({ name: user.name, className: user.className || '', username: user.username, password: user.password });
     setShowUserModal(true);
   };
 
-  const handleSaveUser = (e) => {
+  const handleSaveUser = async (e) => {
     e.preventDefault();
     if (!userFormData.name.trim() || !userFormData.username.trim() || !userFormData.password) {
       alert('Vui lòng điền đầy đủ các thông tin!');
@@ -56,27 +57,71 @@ export default function DashboardAdmin({
     }
 
     if (editingUser) {
-      // Edit User
+      // Edit User - update in Supabase
+      try {
+        const { error } = await supabase
+          .from('hoc_vien')
+          .update({
+            ho_ten: userFormData.name.trim(),
+            lop: userFormData.className.trim(),
+            mat_khau: userFormData.password
+          })
+          .eq('ten_dang_nhap', editingUser.username.toLowerCase());
+
+        if (error) throw error;
+      } catch (err) {
+        alert("Lỗi cập nhật Supabase: " + err.message);
+        return;
+      }
+
       const updatedUsers = users.map(u => {
         if (u.id === editingUser.id) {
-          return { ...u, name: userFormData.name.trim(), username: userFormData.username.trim().toLowerCase(), password: userFormData.password };
+          return { 
+            ...u, 
+            name: userFormData.name.trim(), 
+            className: userFormData.className.trim(),
+            username: userFormData.username.trim().toLowerCase(), 
+            password: userFormData.password 
+          };
         }
         return u;
       });
       onUpdateUsers(updatedUsers);
     } else {
-      // Add User
+      // Add User - insert into Supabase
       const usernameExists = users.some(u => u.username.toLowerCase() === userFormData.username.trim().toLowerCase());
       if (usernameExists) {
         alert('Tên đăng nhập này đã tồn tại!');
         return;
       }
+
+      try {
+        const { data, error } = await supabase
+          .from('hoc_vien')
+          .insert([
+            {
+              ho_ten: userFormData.name.trim(),
+              lop: userFormData.className.trim(),
+              ten_dang_nhap: userFormData.username.trim().toLowerCase(),
+              mat_khau: userFormData.password
+            }
+          ]);
+
+        if (error) throw error;
+        alert("Đã lưu học viên vào Supabase thành công!");
+      } catch (err) {
+        alert("Lỗi rồi thầy ơi: " + err.message);
+        return;
+      }
+
       const newUser = {
         id: 'user_' + Date.now(),
         name: userFormData.name.trim(),
+        className: userFormData.className.trim(),
         username: userFormData.username.trim().toLowerCase(),
         password: userFormData.password,
         role: 'user',
+        loginCount: 0,
         history: []
       };
       onUpdateUsers([...users, newUser]);
@@ -84,13 +129,25 @@ export default function DashboardAdmin({
     setShowUserModal(false);
   };
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     const user = users.find(u => u.id === userId);
     if (user.username === 'admin') {
       alert('Không thể xóa tài khoản admin mặc định!');
       return;
     }
     if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${user.name}"?`)) {
+      try {
+        const { error } = await supabase
+          .from('hoc_vien')
+          .delete()
+          .eq('ten_dang_nhap', user.username.toLowerCase());
+
+        if (error) throw error;
+      } catch (err) {
+        alert("Lỗi xóa trên Supabase: " + err.message);
+        return;
+      }
+
       const updatedUsers = users.filter(u => u.id !== userId);
       onUpdateUsers(updatedUsers);
     }
@@ -232,9 +289,11 @@ export default function DashboardAdmin({
                 <thead>
                   <tr>
                     <th>Họ và tên</th>
+                    <th>Lớp</th>
                     <th>Tên đăng nhập</th>
                     <th>Mật khẩu</th>
                     <th>Vai trò</th>
+                    <th>Số lần đăng nhập</th>
                     <th>Điểm thi cao nhất</th>
                     <th>Hành động</th>
                   </tr>
@@ -249,6 +308,13 @@ export default function DashboardAdmin({
                     return (
                       <tr key={u.id}>
                         <td><strong>{u.name}</strong></td>
+                        <td>
+                          {u.className ? (
+                            <span className="class-tag">{u.className}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>Chưa cập nhật</span>
+                          )}
+                        </td>
                         <td><code>{u.username}</code></td>
                         <td><code>{u.password}</code></td>
                         <td>
@@ -257,6 +323,11 @@ export default function DashboardAdmin({
                           ) : (
                             <span className="status-badge status-badge-user">User</span>
                           )}
+                        </td>
+                        <td>
+                          <span className="login-count-badge">
+                            {u.loginCount || 0} lần
+                          </span>
                         </td>
                         <td>
                           {maxScore !== 'Chưa thi' ? (
@@ -577,6 +648,17 @@ export default function DashboardAdmin({
                   value={userFormData.name}
                   onChange={e => setUserFormData(prev => ({ ...prev, name: e.target.value }))}
                   required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Lớp</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="Ví dụ: 12A1, 11A2..."
+                  value={userFormData.className}
+                  onChange={e => setUserFormData(prev => ({ ...prev, className: e.target.value }))}
                 />
               </div>
 

@@ -8,6 +8,8 @@ import DashboardAdmin from './components/DashboardAdmin';
 import AuthModal from './components/AuthModal';
 import RelaxSection from './components/RelaxSection';
 import { Icon } from './components/Icons';
+import StudentDashboard from './components/StudentDashboard';
+
 
 import { 
   seedTopics, 
@@ -15,6 +17,24 @@ import {
   seedDocuments, 
   seedUsers 
 } from './data/seedData';
+
+// Giả sử đây là component màn hình làm bài/học tập của học sinh sau khi vào hệ thống
+function StudentPanel({ student, onLogout }) {
+  const hoTen = student.ho_ten || student.name || 'Học viên';
+  const lop = student.lop || student.className || 'Chưa cập nhật';
+  const diemSo = student.diem_so || (student.history && student.history.length > 0 ? Math.max(...student.history.map(h => h.score)) : 'Chưa thi');
+
+  return (
+    <div style={{ padding: '40px', color: '#fff', backgroundColor: '#0d1117', minHeight: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+      <h1>Chào mừng học viên: <span style={{ color: '#5d6cfc' }}>{hoTen}</span></h1>
+      <p style={{ marginTop: '10px' }}>Lớp: {lop}</p>
+      <p style={{ marginTop: '10px' }}>Trạng thái điểm thi hiện tại: <b>{diemSo}</b></p>
+      <button onClick={onLogout} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '20px' }}>
+        Đăng xuất tài khoản
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   // --- State Initialization from localStorage or Seed Data ---
@@ -127,9 +147,13 @@ export default function App() {
 
     // Auto-login active user session if exists
     const sessionUser = sessionStorage.getItem('thpt_tin_session_user');
+    const savedStudent = localStorage.getItem('current_student');
     if (sessionUser) {
       setCurrentUser(JSON.parse(sessionUser));
+    } else if (savedStudent) {
+      setCurrentUser(JSON.parse(savedStudent));
     }
+
 
     // Set data loaded flag
     setDataLoaded(true);
@@ -137,8 +161,43 @@ export default function App() {
 
   // --- Auth Handlers ---
   const handleLogin = (user) => {
-    setCurrentUser(user);
-    sessionStorage.setItem('thpt_tin_session_user', JSON.stringify(user));
+    const normalizedUser = {
+      id: user.id || 'user_' + Date.now(),
+      name: user.name || user.ho_ten || 'Học viên',
+      className: user.className || user.lop || '',
+      username: (user.username || user.ten_dang_nhap || '').toLowerCase(),
+      password: user.password || user.mat_khau || '',
+      role: user.role || 'user',
+      loginCount: (user.loginCount || 0) + 1,
+      history: user.history || []
+    };
+
+    const userExists = users.some(u => u.id === normalizedUser.id || u.username.toLowerCase() === normalizedUser.username.toLowerCase());
+    
+    let updatedUsers;
+    if (userExists) {
+      updatedUsers = users.map(u => {
+        if (u.id === normalizedUser.id || u.username.toLowerCase() === normalizedUser.username.toLowerCase()) {
+          return {
+            ...u,
+            loginCount: (u.loginCount || 0) + 1,
+            name: normalizedUser.name,
+            className: normalizedUser.className,
+            password: normalizedUser.password
+          };
+        }
+        return u;
+      });
+    } else {
+      updatedUsers = [...users, normalizedUser];
+    }
+
+    setUsers(updatedUsers);
+    localStorage.setItem('thpt_tin_users', JSON.stringify(updatedUsers));
+
+    const updatedUser = updatedUsers.find(u => u.id === normalizedUser.id || u.username.toLowerCase() === normalizedUser.username.toLowerCase());
+    setCurrentUser(updatedUser);
+    sessionStorage.setItem('thpt_tin_session_user', JSON.stringify(updatedUser));
   };
 
   const handleRegister = (newUser) => {
@@ -150,6 +209,7 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     sessionStorage.removeItem('thpt_tin_session_user');
+    localStorage.removeItem('current_student');
     if (activeTab === 'admin') {
       navigateTo('home', null, null, false);
     }
@@ -283,6 +343,11 @@ export default function App() {
 
   // --- Navigation Wrappers ---
   const handleSelectTopic = (topic) => {
+    if (!currentUser) {
+      alert('Vui lòng đăng nhập để xem nội dung học tập!');
+      setIsAuthModalOpen(true);
+      return;
+    }
     navigateTo('topics', topic, null, false);
   };
 
@@ -358,7 +423,7 @@ export default function App() {
       <main className="main-content">
         
         {/* --- IN EXAM MODE --- */}
-        {selectedExam ? (
+        {selectedExam && currentUser ? (
           viewOriginalHtml ? null : (
             <ExamSession 
               exam={selectedExam}
@@ -372,14 +437,28 @@ export default function App() {
             {/* --- HOME VIEW --- */}
             {activeTab === 'home' && (
               <div>
-                <Hero 
-                  onStartStudy={() => navigateTo('topics', null, null, false)} 
-                  onStartExam={() => navigateTo('exams', null, null, false)}
-                  stats={stats}
-                />
+                {currentUser && currentUser.role !== 'admin' ? (
+                  <>
+                    <StudentPanel student={currentUser} onLogout={handleLogout} />
+                    <StudentDashboard 
+                      studentInfo={currentUser}
+                      onStartStudy={() => navigateTo('topics', null, null, false)}
+                      onStartExam={() => navigateTo('exams', null, null, false)}
+                      onViewDocs={() => navigateTo('docs', null, null, false)}
+                    />
+                  </>
+                ) : (
+                  <Hero 
+                    onStartStudy={() => navigateTo('topics', null, null, false)} 
+                    onStartExam={() => navigateTo('exams', null, null, false)}
+                    stats={stats}
+                    onStartClick={() => setIsAuthModalOpen(true)}
+                  />
+                )}
                 
                 {/* Compact Topics Section on Home */}
-                <div className="section-header">
+                <div className="section-header" style={{ marginTop: currentUser && currentUser.role !== 'admin' ? '32px' : '0' }}>
+
                   <h2 className="section-title">Chủ đề kiến thức trọng tâm</h2>
                   <button className="btn btn-secondary" onClick={() => navigateTo('topics', null, null, false)}>
                     Xem tất cả
@@ -401,7 +480,7 @@ export default function App() {
             {/* --- TOPICS VIEW --- */}
             {activeTab === 'topics' && (
               <div>
-                {selectedTopic ? (
+                {selectedTopic && currentUser ? (
                   <TopicDetail 
                     topic={selectedTopic} 
                     onBack={() => navigateTo('topics', null, null, false)} 
@@ -409,7 +488,7 @@ export default function App() {
                 ) : (
                   <div>
                     <div className="section-header">
-                      <h2 className="section-title">Kiến thức tổng hợp Tin học 12</h2>
+                      <h2 className="section-title">Kiến thức tổng hợp</h2>
                       <div style={{ display: 'flex', gap: '12px' }}>
                         <div style={{ position: 'relative' }}>
                           <input 
@@ -570,6 +649,12 @@ export default function App() {
                         href={doc.downloadUrl} 
                         className="btn btn-secondary"
                         onClick={(e) => {
+                          if (!currentUser) {
+                            e.preventDefault();
+                            alert('Vui lòng đăng nhập để tải tài liệu!');
+                            setIsAuthModalOpen(true);
+                            return;
+                          }
                           if (doc.downloadUrl === '#') {
                             e.preventDefault();
                             alert('Tài liệu demo: File PDF chưa được tải lên máy chủ.');
@@ -659,7 +744,9 @@ export default function App() {
         onLogin={handleLogin}
         onRegister={handleRegister}
         registeredUsers={users}
+        onLoginSuccess={handleLogin}
       />
+
 
       {/* Fullscreen HTML Exam overlay */}
       {selectedExam && viewOriginalHtml && (
