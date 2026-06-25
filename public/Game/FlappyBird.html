@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Flappy Bird Phiên Bản Cải Tiến</title>
     <style>
         body {
@@ -13,20 +13,24 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
 
+        /* Khung chứa game tự động co giãn theo tỷ lệ dọc 3:4 chuẩn Flappy Bird */
         #game-container {
             position: relative;
-            width: 480px;
-            height: 640px;
+            width: 92vw;
+            max-width: 480px;
+            aspect-ratio: 480 / 640;
             background: linear-gradient(to bottom, #38b6ff, #92d8ff);
             border: 4px solid #fff;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             overflow: hidden;
+            touch-action: none; /* Ngăn chặn cuộn trang/zoom nhầm trên điện thoại */
         }
 
         /* Giao diện điểm số */
@@ -36,7 +40,7 @@
             left: 0;
             width: 100%;
             text-align: center;
-            font-size: 32px;
+            font-size: clamp(24px, 6vw, 32px);
             font-weight: bold;
             color: white;
             text-shadow: 3px 3px 0px #222;
@@ -47,7 +51,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            font-size: 20px;
+            font-size: clamp(13px, 3vw, 20px);
             font-weight: bold;
             color: #ffd700;
             text-shadow: 2px 2px 0px #222;
@@ -60,7 +64,7 @@
             top: 70px;
             width: 100%;
             text-align: center;
-            font-size: 18px;
+            font-size: clamp(14px, 3.5vw, 18px);
             font-weight: bold;
             color: #ff3366;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
@@ -109,24 +113,22 @@
             transition: transform 0.1s;
         }
 
-        /* Các style tương ứng cho các Skin của chim */
         .skin-default {
-            background-color: #f7d117; /* Vàng nguyên bản */
+            background-color: #f7d117; 
             border-radius: 14px;
             box-shadow: inset -3px -3px 0px #cda200;
         }
         .skin-ninja {
-            background-color: #2b2b2b; /* Đen Ninja */
+            background-color: #2b2b2b; 
             border-radius: 14px;
             box-shadow: inset -3px -3px 0px #111, 0 0 10px #ff3333;
         }
         .skin-fire {
-            background-color: #ff4500; /* Đỏ lửa Siêu nhân */
+            background-color: #ff4500; 
             border-radius: 14px;
             box-shadow: inset -3px -3px 0px #b33000, 0 0 15px #ffcc00;
         }
 
-        /* Chi tiết trên mặt chim */
         .bird-eye {
             position: absolute;
             width: 10px;
@@ -183,7 +185,6 @@
             box-shadow: inset -10px 0px 0px #5aa422;
             z-index: 3;
         }
-        /* Đầu loe của ống nước */
         .pipe::after {
             content: '';
             position: absolute;
@@ -235,20 +236,23 @@
             justify-content: center;
             color: white;
             z-index: 20;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .screen h1 {
-            font-size: 36px;
+            font-size: clamp(20px, 6vw, 36px);
             color: #ffd700;
             margin-bottom: 5px;
             text-shadow: 2px 2px 4px #000;
         }
 
-        .screen p { margin: 5px 0 20px 0; font-size: 16px; color: #ccc;}
+        .screen p { margin: 5px 0 20px 0; font-size: clamp(12px, 2.5vw, 16px); color: #ccc;}
 
         button {
-            padding: 12px 35px;
-            font-size: 18px;
+            padding: 10px 30px;
+            font-size: clamp(14px, 2.5vw, 18px);
             font-weight: bold;
             background-color: #4caf50;
             color: white;
@@ -257,36 +261,42 @@
             cursor: pointer;
             transition: all 0.2s;
             box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-            margin-bottom: 25px;
+            margin-bottom: 15px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:hover { transform: scale(1.05); background-color: #45a049; }
 
         /* Khung Cửa Hàng Skin */
         .shop-title {
-            font-size: 18px;
+            font-size: clamp(14px, 2.8vw, 18px);
             color: #ffd700;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 5px;
             border-top: 1px dashed #555;
-            width: 80%;
+            width: 85%;
             text-align: center;
-            padding-top: 15px;
+            padding-top: 10px;
         }
         .shop-container {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-top: 10px;
+            width: 90%;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         .shop-item {
             background-color: #222;
             border: 2px solid #555;
             border-radius: 8px;
-            padding: 10px;
-            width: 105px;
+            padding: 8px 4px;
+            width: 90px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         .shop-item:hover { border-color: #ffd700; background-color: #2d2d2d; }
         .shop-item.selected { border-color: #4caf50; background-color: #1b3a1e; }
@@ -295,18 +305,23 @@
         .skin-preview {
             width: 30px;
             height: 22px;
-            margin: 0 auto 8px auto;
+            margin: 0 auto 6px auto;
             border-radius: 8px;
         }
 
-        .shop-item span { font-size: 12px; font-weight: bold; display: block; margin-top: 4px;}
+        .shop-item small {
+            font-size: 11px;
+            display: block;
+        }
+
+        .shop-item span { font-size: 10px; font-weight: bold; display: block; margin-top: 4px;}
     </style>
 </head>
 <body>
 
     <div id="game-container">
         <div id="score-board">0</div>
-        <div id="star-currency">⭐ Đang có: <span id="total-score-txt">0</span></div>
+        <div id="star-currency">⭐ Có: <span id="total-score-txt">0</span></div>
         
         <div id="buff-announcement">🌟 CHẾ ĐỘ BẤT TỬ: KÍCH HOẠT! 🌟</div>
 
@@ -322,33 +337,33 @@
         <div id="menu-screen" class="screen">
             <h1>FLAPPY BIRD UPGRADE</h1>
             <p>Phiên Bản Cải Tiến Đặc Sắc</p>
-            <button onclick="startGame()">Bắt đầu bay</button>
+            <button id="btn-start-game">Bắt đầu bay</button>
 
             <div class="shop-title">CỬA HÀNG SKIN CHIM</div>
-            <div class="shop-container">
-                <div class="shop-item selected" id="shop-default" onclick="selectSkin('default', 0)">
+            <div class="shop-container" id="shop-box">
+                <div class="shop-item selected" id="shop-default" data-skin="default" data-price="0">
                     <div class="skin-preview" style="background-color: #f7d117;"></div>
                     <small>Mặc Định</small>
                     <span style="color: #4caf50;">ĐÃ CÓ</span>
                 </div>
-                <div class="shop-item locked" id="shop-ninja" onclick="selectSkin('ninja', 15)">
+                <div class="shop-item locked" id="shop-ninja" data-skin="ninja" data-price="15">
                     <div class="skin-preview" style="background-color: #2b2b2b; box-shadow: 0 0 5px red;"></div>
                     <small>Ninja Đen</small>
-                    <span id="price-ninja" style="color: #ffd700;">🎯 15 Điểm</span>
+                    <span id="price-ninja" style="color: #ffd700;">🎯 15đ</span>
                 </div>
-                <div class="shop-item locked" id="shop-fire" onclick="selectSkin('fire', 40)">
+                <div class="shop-item locked" id="shop-fire" data-skin="fire" data-price="40">
                     <div class="skin-preview" style="background-color: #ff4500; box-shadow: 0 0 5px gold;"></div>
                     <small>Siêu Nhân</small>
-                    <span id="price-fire" style="color: #ffd700;">🎯 40 Điểm</span>
+                    <span id="price-fire" style="color: #ffd700;">🎯 40đ</span>
                 </div>
             </div>
-            <p style="font-size: 12px; color: #888; margin-top: 15px;">Dùng phím <b>SPACE (CÁCH)</b> hoặc <b>CLICK CHUỘT</b> để nhảy bay.</p>
+            <p style="font-size: 11px; color: #888; margin-top: 15px;"><b>PC:</b> Ấn SPACE hoặc Click chuột.<br><b>Phone:</b> Chạm màn hình để bay.</p>
         </div>
 
         <div id="gameover-screen" class="screen" style="display: none;">
             <h1 style="color: #f44336;">GAME OVER</h1>
             <p>Điểm trận này: <span id="match-score" style="color:#ffd700; font-weight:bold;">0</span></p>
-            <button onclick="showMenu()">Quay lại Menu / Shop</button>
+            <button onclick="showMenu()">Quay lại Shop</button>
         </div>
     </div>
 
@@ -361,39 +376,31 @@
         const menuScreen = document.getElementById('menu-screen');
         const gameoverScreen = document.getElementById('gameover-screen');
 
-        // Thông số vật lý của chim
         let birdY = 250;
         let velocity = 0;
         const gravity = 0.4;
         const jumpForce = -7.5;
 
-        // Trạng thái hệ thống game
         let isGameRunning = false;
         let score = 0;
         let totalScore = parseInt(localStorage.getItem('fb_total_score')) || 0;
         let currentSkin = 'default';
         
-        // Hệ thống danh sách vật phẩm đã mở khóa (Lưu trữ bằng LocalStorage)
         let unlockedSkins = JSON.parse(localStorage.getItem('fb_unlocked_skins')) || ['default'];
 
-        // Trạng thái Buff Bất Tử
         let isInvincible = false;
         let invincibleTimer = null;
 
-        // Quản lý Mảng thực thể
         let pipes = [];
         let stars = [];
         let gameInterval;
         let spawnTimer = 0;
 
-        // Tốc độ di chuyển nền vật thể
         let gameSpeed = 3;
 
-        // Khởi tạo hiển thị điểm ban đầu
         totalScoreTxt.innerText = totalScore;
         updateShopUI();
 
-        // Hàm cập nhật trạng thái hiển thị của cửa hàng trang phục
         function updateShopUI() {
             unlockedSkins.forEach(skin => {
                 const item = document.getElementById(`shop-${skin}`);
@@ -403,20 +410,16 @@
                     if (span && skin !== 'default') span.innerHTML = "<span style='color: #4caf50;'>ĐÃ MỞ</span>";
                 }
             });
-            // Highlight trang phục đang được chọn
             document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
             document.getElementById(`shop-${currentSkin}`).classList.add('selected');
         }
 
-        // Chọn hoặc mua Trang Phục (Skin) bằng điểm tích lũy
         function selectSkin(skinName, price) {
             if (unlockedSkins.includes(skinName)) {
-                // Nếu đã sở hữu thì đổi ngay
                 currentSkin = skinName;
                 bird.className = `skin-${skinName}`;
                 updateShopUI();
             } else {
-                // Nếu chưa sở hữu thực hiện mua bằng điểm tích lũy qua các màn chơi
                 if (totalScore >= price) {
                     totalScore -= price;
                     localStorage.setItem('fb_total_score', totalScore);
@@ -429,104 +432,129 @@
                     bird.className = `skin-${skinName}`;
                     updateShopUI();
                 } else {
-                    alert("Bạn không đủ số điểm tích lũy (🎯)! Hãy tiếp tục chơi để tích thêm điểm nhé.");
+                    alert("Bạn không đủ số điểm tích lũy! Hãy tiếp tục bay để kiếm thêm nhé.");
                 }
             }
         }
 
-        // Quay lại màn hình chính
+        // Đăng ký sự kiện click trực tiếp cho các vật phẩm shop để chặn hiện tượng nhảy vỗ cánh ẩn
+        document.getElementById('shop-box').addEventListener('click', function(e) {
+            let item = e.target.closest('.shop-item');
+            if (item) {
+                // Triệt tiêu sự kiện lan truyền lên thẻ cha, không kích hoạt flap() hay startGame() ảo
+                e.stopPropagation(); 
+                let skin = item.getAttribute('data-skin');
+                let price = parseInt(item.getAttribute('data-price'));
+                selectSkin(skin, price);
+            }
+        });
+
+        document.getElementById('shop-box').addEventListener('touchstart', function(e) {
+            e.stopPropagation(); // Áp dụng chặn tương tự cho sự kiện chạm mobile
+        }, { passive: true });
+
+        // Gắn sự kiện riêng biệt cho nút bắt đầu game
+        document.getElementById('btn-start-game').addEventListener('click', function(e) {
+            e.stopPropagation();
+            startGame();
+        });
+        document.getElementById('btn-start-game').addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+            startGame();
+        });
+
         function showMenu() {
             gameoverScreen.style.display = 'none';
             menuScreen.style.display = 'flex';
             updateShopUI();
         }
 
-        // BẮT ĐẦU TRẬN ĐẤU MỚI
         function startGame() {
             menuScreen.style.display = 'none';
             gameoverScreen.style.display = 'none';
             
-            // Khởi tạo lại các chỉ số cơ bản
             birdY = 250;
             velocity = 0;
             score = 0;
             scoreBoard.innerText = "0";
             isGameRunning = true;
             
-            // Xóa hiệu ứng buff bất tử cũ nếu có
             isInvincible = false;
             buffTxt.style.display = 'none';
+            bird.style.filter = 'none';
             clearTimeout(invincibleTimer);
 
-            // Dọn dẹp ống nước và ngôi sao cũ
             pipes.forEach(p => p.el.remove());
             stars.forEach(s => s.el.remove());
             pipes = [];
             stars = [];
             spawnTimer = 0;
 
-            // Kích hoạt chu kỳ xử lý vòng lặp logic (60FPS)
             clearInterval(gameInterval);
             gameInterval = setInterval(updateGame, 1000 / 60);
         }
 
-        // XỬ LÝ NHẢY/VỖ CÁNH CHO CHIM
         function flap() {
             if (!isGameRunning) return;
             velocity = jumpForce;
         }
 
-        // Sự kiện phím bấm/chuột để nhảy
-        window.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'ArrowUp') flap(); });
-        container.addEventListener('mousedown', () => { flap(); });
+        // Sự kiện bàn phím (PC)
+        window.addEventListener('keydown', (e) => { 
+            if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'Up') flap(); 
+        });
 
-        // VÒNG LẶP LOGIC CHÍNH (GAME LOOP)
+        // Sự kiện Click chuột trái (PC)
+        container.addEventListener('mousedown', function(e) {
+            if (e.button === 0 && isGameRunning) flap();
+        });
+
+        // Sự kiện Cảm ứng chạm (Mobile)
+        container.addEventListener('touchstart', function(e) {
+            if (isGameRunning) {
+                e.preventDefault(); // Tránh trễ nhịp và click ảo song song trên di động
+                flap();
+            }
+        }, { passive: false });
+
+
         function updateGame() {
-            // 1. Áp dụng trọng lực lên vị trí của chim
             velocity += gravity;
             birdY += velocity;
             bird.style.top = birdY + 'px';
 
-            // Hiệu ứng nghiêng đầu chim chân thực theo vận tốc rơi tự do
             let angle = Math.min(Math.max(-20, velocity * 4), 70);
             bird.style.transform = `rotate(${angle}deg)`;
 
-            // Kiểm tra va chạm sàn đất hoặc trần nhà
-            if (birdY > 574 || birdY < 0) { // 640px - 40px đất - 26px chiều cao chim
+            if (birdY > 574 || birdY < 0) { 
                 triggerGameOver();
                 return;
             }
 
-            // 2. Di chuyển các tầng cảnh nền tạo hiệu ứng chiều sâu không gian cuộn dải liên tục
             const bgCity = document.getElementById('background-city');
             const ground = document.getElementById('ground');
             bgCity.style.left = (bgCity.offsetLeft - 0.5) % 480 + 'px';
             ground.style.left = (ground.offsetLeft - gameSpeed) % 480 + 'px';
 
-            // 3. Khởi tạo sinh Ống Nước và Ngôi Sao Ngẫu Nhiên theo nhịp thời gian
             spawnTimer++;
-            if (spawnTimer >= 110) { // Cứ sau khoảng 2 giây sinh cặp ống mới
+            if (spawnTimer >= 110) { 
                 createPipePair();
                 spawnTimer = 0;
             }
 
-            // 4. Quản lý di chuyển và xử lý va chạm Ống Nước
             for (let i = pipes.length - 1; i >= 0; i--) {
                 let p = pipes[i];
                 p.x -= gameSpeed;
                 p.el.style.left = p.x + 'px';
 
-                // Thuật toán kiểm tra ghi nhận điểm số khi vượt qua ống nước thành công
-                if (!p.passed && p.isTop && p.x + 70 < 100) { // Ống qua khỏi tọa độ chim (100px)
+                if (!p.passed && p.isTop && p.x + 70 < 100) { 
                     p.passed = true;
                     score++;
                     scoreBoard.innerText = score;
                 }
 
-                // Kiểm tra va chạm giữa Chim và Ống nước bằng cấu trúc hộp giới hạn hình học (AABB)
                 if (checkCollision(bird, p.el)) {
                     if (isInvincible) {
-                        // KHOẢNH KHẮC BẤT TỬ CẢI TIẾN: Ống bị phá hủy biến mất khi chạm vào chim!
                         p.el.remove();
                         pipes.splice(i, 1);
                         continue;
@@ -536,20 +564,17 @@
                     }
                 }
 
-                // Xóa ống nước khuất khỏi màn hình bên trái để tối ưu tài nguyên ram
                 if (p.x < -80) {
                     p.el.remove();
                     pipes.splice(i, 1);
                 }
             }
 
-            // 5. Quản lý di chuyển và ăn Vật Phẩm Ngôi Sao May Mắn
             for (let i = stars.length - 1; i >= 0; i--) {
                 let s = stars[i];
                 s.x -= gameSpeed;
                 s.el.style.left = s.x + 'px';
 
-                // Kiểm tra khi chim ăn trúng Ngôi sao
                 if (checkCollision(bird, s.el)) {
                     s.el.remove();
                     stars.splice(i, 1);
@@ -564,15 +589,13 @@
             }
         }
 
-        // Khởi tạo cặp ống nước (Trên và Dưới) song song
         function createPipePair() {
-            const gap = 140; // Khoảng cách khe hở giữa 2 ống giúp chim bay lọt qua
+            const gap = 140; 
             const minHeight = 50;
-            const maxHeight = 560 - gap - minHeight - 40; // Giới hạn biên mặt đất
+            const maxHeight = 560 - gap - minHeight - 40; 
             const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
             const bottomHeight = 560 - gap - topHeight;
 
-            // Ống Trên
             const pipeTop = document.createElement('div');
             pipeTop.classList.add('pipe', 'pipe-top');
             pipeTop.style.height = topHeight + 'px';
@@ -581,7 +604,6 @@
             container.appendChild(pipeTop);
             pipes.push({ el: pipeTop, x: 480, isTop: true, passed: false });
 
-            // Ống Dưới
             const pipeBottom = document.createElement('div');
             pipeBottom.classList.add('pipe', 'pipe-bottom');
             pipeBottom.style.height = bottomHeight + 'px';
@@ -590,26 +612,23 @@
             container.appendChild(pipeBottom);
             pipes.push({ el: pipeBottom, x: 480, isTop: false, passed: false });
 
-            // Xác suất 35% sinh ra Ngôi Sao May Mắn nằm ở chính giữa khe hở của ống nước
             if (Math.random() < 0.35) {
                 const star = document.createElement('div');
-                const starTop = topHeight + (gap / 2) - 12; // Căn giữa khe hở theo phương thẳng đứng
+                const starTop = topHeight + (gap / 2) - 12; 
                 star.classList.add('star-item');
                 star.style.top = starTop + 'px';
-                star.style.left = '502px'; // Nằm giữa chiều ngang lòng ống (480px + 22px lệch tâm)
+                star.style.left = '502px'; 
                 container.appendChild(star);
                 stars.push({ el: star, x: 502 });
             }
         }
 
-        // KÍCH HOẠT CHẾ ĐỘ BẤT TỬ KHI ĂN NGÔI SAO
         function activateInvincibleMode() {
             isInvincible = true;
             buffTxt.style.display = 'block';
-            bird.style.filter = 'drop-shadow(0 0 8px #ffd700) invert(10%)'; // Tạo hiệu ứng phát sáng lấp lánh cho chim
+            bird.style.filter = 'drop-shadow(0 0 8px #ffd700) invert(10%)'; 
 
             clearTimeout(invincibleTimer);
-            // Hiệu ứng kéo dài trong 5 giây
             invincibleTimer = setTimeout(() => {
                 isInvincible = false;
                 buffTxt.style.display = 'none';
@@ -617,29 +636,24 @@
             }, 5000);
         }
 
-        // THUẬT TOÁN KIỂM TRA VA CHẠM KHỐI GIỚI HẠN (AABB)
         function checkCollision(el1, el2) {
             const r1 = el1.getBoundingClientRect();
             const r2 = el2.getBoundingClientRect();
             
-            // Tạo khoảng bo biên lùi vào 3px giúp nước đi mượt hơn, giảm thiểu tỉ lệ chết oan cho người chơi
             return !(r1.right - 3 < r2.left || 
                      r1.left + 3 > r2.right || 
                      r1.bottom - 3 < r2.top || 
                      r1.top + 3 > r2.bottom);
         }
 
-        // KẾT THÚC TRẬN ĐẤU (THUA CUỘC)
         function triggerGameOver() {
             isGameRunning = false;
             clearInterval(gameInterval);
             
-            // Cộng dồn điểm tích lũy vào kho điểm tổng của tài khoản để đổi quà ở Shop
             totalScore += score;
             localStorage.setItem('fb_total_score', totalScore);
             totalScoreTxt.innerText = totalScore;
 
-            // Hiển thị bảng điểm trận đấu
             document.getElementById('match-score').innerText = score;
             gameoverScreen.style.display = 'flex';
         }

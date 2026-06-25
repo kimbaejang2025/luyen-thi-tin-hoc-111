@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Trò Chơi Lật Hình - Khám Phá Ảnh Thần Tượng</title>
     <style>
         body {
@@ -17,25 +17,32 @@
             min-height: 100vh;
             color: #333;
             user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+            padding: 10px;
+            box-sizing: border-box;
         }
 
         h1 {
             margin: 10px 0 5px 0;
             color: #2b6cb0;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            font-size: clamp(18px, 4vw, 32px);
+            text-align: center;
         }
 
-        /* Thanh UI thông tin phía trên */
+        /* Thanh UI thông tin phía trên tự co giãn */
         #ui-layer {
-            width: 700px;
+            width: 95vw;
+            max-width: 700px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 18px;
+            font-size: clamp(12px, 2.5vw, 18px);
             font-weight: bold;
             margin-bottom: 10px;
             background-color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             box-sizing: border-box;
@@ -44,11 +51,12 @@
         #txt-timer span { color: #e53e3e; }
         #txt-stage span { color: #3182ce; }
 
-        /* Khung chứa game chính */
+        /* Khung chứa game chính tự động giữ tỷ lệ vàng 700:480 */
         #game-container {
             position: relative;
-            width: 700px;
-            height: 480px;
+            width: 95vw;
+            max-width: 700px;
+            aspect-ratio: 700 / 480;
             background-color: #fff;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -70,22 +78,21 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end; /* Đẩy chữ thông tin xuống dưới đáy để không che mặt nhân vật */
+            justify-content: flex-end; 
             box-sizing: border-box;
         }
 
-        /* Vùng phủ đen mờ mỏng phía dưới chữ để đọc chữ rõ hơn trên nền ảnh */
         .idol-info-bar {
             width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
-            padding: 20px 10px 15px 10px;
+            padding: 4% 2% 3% 2%;
             text-align: center;
             box-sizing: border-box;
             color: white;
         }
 
         .idol-name {
-            font-size: 32px;
+            font-size: clamp(18px, 4.5vw, 32px);
             font-weight: bold;
             color: #ffd700;
             margin: 0;
@@ -94,35 +101,37 @@
         }
 
         .idol-title {
-            font-size: 16px;
+            font-size: clamp(11px, 2.2vw, 16px);
             color: #e2e8f0;
             margin: 5px 0 0 0;
             font-style: italic;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
         }
 
-        /* LỚP BÀN CỜ LẬT HÌNH PHÍA TRƯỚC (4x4 = 16 ô bài) */
+        /* LỚP BÀN CỜ LẬT HÌNH PHÍA TRƯỚC (Sử dụng hệ Grid thích ứng) */
         #grid-layer {
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: 92%;
+            height: 90%;
             display: grid;
-            grid-template-columns: repeat(4, 130px);
-            grid-template-rows: repeat(4, 90px);
-            gap: 15px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: repeat(4, minmax(0, 1fr));
+            gap: 2%;
             align-content: center;
             justify-content: center;
-            z-index: 2; /* Nằm đè lên lớp nền ảnh */
+            z-index: 2; 
             background-color: transparent;
         }
 
-        /* Thiết kế lá bài */
+        /* Thiết kế lá bài tích hợp theo dõi Container Query */
         .card {
             perspective: 1000px;
             cursor: pointer;
-            width: 130px;
-            height: 90px;
+            width: 100%;
+            height: 100%;
             transition: opacity 0.5s ease-out;
+            -webkit-tap-highlight-color: transparent; /* Chặn vệt xanh khi tab điện thoại */
+            container-type: inline-size; /* Cho phép phần tử con co giãn theo chiều rộng lá bài */
         }
 
         .card-inner {
@@ -151,24 +160,24 @@
             border-radius: 8px;
             border: 2px solid #fff;
             box-sizing: border-box;
+            line-height: 1;
         }
 
-        /* Mặt úp của lá bài */
+        /* Mặt úp của lá bài tự động co giãn cỡ chữ */
         .card-back {
-            font-size: 28px;
+            font-size: 32cqw; 
             color: #fff;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* Mặt ngửa của lá bài hiển thị Emoji */
+        /* Mặt ngửa của lá bài hiển thị Emoji tự động co giãn */
         .card-front {
             background-color: #ffffff;
             transform: rotateY(180deg);
-            font-size: 40px;
+            font-size: 45cqw; 
             box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
         }
 
-        /* Khi cặp bài đã khớp -> ẩn đi để lộ ảnh */
         .card.matched {
             opacity: 0;
             pointer-events: none;
@@ -181,16 +190,19 @@
             background-color: rgba(26, 32, 44, 0.96);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: white; z-index: 20;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        .screen h2 { font-size: 36px; color: #ffd700; margin-bottom: 10px; }
-        .screen p { font-size: 18px; margin-bottom: 25px; color: #cbd5e0; text-align: center; max-width: 500px; }
+        .screen h2 { font-size: clamp(20px, 5vw, 36px); color: #ffd700; margin-bottom: 10px; text-align: center; }
+        .screen p { font-size: clamp(13px, 2.5vw, 18px); margin-bottom: 25px; color: #cbd5e0; text-align: center; max-width: 500px; }
 
         button {
-            padding: 12px 35px; font-size: 18px; font-weight: bold;
+            padding: 10px 30px; font-size: clamp(14px, 2.5vw, 18px); font-weight: bold;
             background-color: #3182ce; color: white; border: none;
             border-radius: 25px; cursor: pointer; transition: all 0.2s;
             box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+            -webkit-tap-highlight-color: transparent;
         }
         button:hover { transform: translateY(-2px); background-color: #4299e1; }
     </style>
@@ -238,17 +250,14 @@
         const stageTxt = document.getElementById('txt-stage');
         const timerTxt = document.getElementById('txt-timer');
         
-        // Nhãn thông tin lớp nền
         const idolBgLayer = document.getElementById('idol-bg-layer');
         const lblIdolName = document.getElementById('lbl-idol-name');
         const lblIdolTitle = document.getElementById('lbl-idol-title');
 
-        // Các màn hình trạng thái
         const startScreen = document.getElementById('start-screen');
         const clearScreen = document.getElementById('clear-screen');
         const victoryScreen = document.getElementById('victory-screen');
 
-        // MẢNG DỮ LIỆU CẤU HÌNH: Đã tích hợp sẵn link ảnh trực tuyến chất lượng cao của từng nhân vật
         const STAGES = [
             { id: 1,  theme: "Trái Cây 🍎", items: ['🍎','🍌','🍇','🍊','🍉','🍓','🍍','🥑'], color: '#ec4899', name: "Sơn Tùng M-TP", title: "Ngôi sao ca nhạc / Biểu tượng Vpop", img: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=700&auto=format&fit=crop&q=80" },
             { id: 2,  theme: "Con Vật 🐶", items: ['🐶','🐱','🦁','🐯','🦊','🐰','🐼','🐨'], color: '#f59e0b', name: "J97 (Jack)", title: "Ca sĩ / Nhạc sĩ nhạc trẻ Việt Nam", img: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=700&auto=format&fit=crop&q=80" },
@@ -259,7 +268,7 @@
             { id: 7,  theme: "Cây Cối 🌲", items: ['🌵','🌲','🌳','🌴','🌱','🌿','☘️','🍀'], color: '#84cc16', name: "Lionel Messi", title: "Thiên tài bóng đá thế giới / Nhà vô địch World Cup", img: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=700&auto=format&fit=crop&q=80" },
             { id: 8,  theme: "Biểu Cảm 😀", items: ['😀','😂','😍','😎','🤫','🤔','😡','🥶'], color: '#a855f7', name: "Châu Tinh Trì", title: "Vua phim hài điện ảnh Hồng Kông", img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=700&auto=format&fit=crop&q=80" },
             { id: 9,  theme: "Không Gian 🌌", items: ['🌍','🌙','⭐','🪐','☄️','🌌','☀️','🛰️'], color: '#f43f5e', name: "Trấn Thành", title: "Nghệ sĩ đa tài / Đạo diễn phim kỷ lục phòng vé", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&auto=format&fit=crop&q=80" },
-            { id: 10, theme: "Nghề Nghiệp 🧑‍⚕️", items: ['🧑‍🏫','🧑‍⚕️','🧑‍🍳','🧑‍🚀','🧑‍✈️','🧑‍🎨','👮','🧑‍🚒'], color: '#64748b', name: "Trí Tuệ Nhân Tạo AI", title: "Người trợ lý Gemini thông minh của bạn", img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=700&auto=format&fit=crop&q=80" }
+            { id: 10, theme: "Nghề Nghiệp 🧑‍⚕️", items: ['🧑‍🏫','🧑‍⚕️','🧑‍🍳','🧑‍🚀','🧑‍✈️','🧑‍🎨','👮','🧑‍'], color: '#64748b', name: "Trí Tuệ Nhân Tạo AI", title: "Người trợ lý Gemini thông minh của bạn", img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=700&auto=format&fit=crop&q=80" }
         ];
 
         let currentStageIndex = 0;
@@ -285,16 +294,13 @@
             let stage = STAGES[currentStageIndex];
             stageTxt.querySelector('span').innerText = `${stage.id}/10`;
 
-            // 1. Cấu hình đưa hình ảnh thực tế của nhân vật vào thuộc tính background-image của lớp nền
             idolBgLayer.style.backgroundImage = `url('${stage.img}')`;
             lblIdolName.innerText = stage.name;
             lblIdolTitle.innerText = stage.title;
 
-            // 2. Nhân đôi mảng vật phẩm tạo thành cặp bài (16 lá)
             let cardItems = [...stage.items, ...stage.items];
             cardItems.sort(() => Math.random() - 0.5);
 
-            // 3. Tạo các thẻ bài xếp lên Grid
             cardItems.forEach((emoji, index) => {
                 const card = document.createElement('div');
                 card.classList.add('card');
@@ -308,11 +314,11 @@
                     </div>
                 `;
 
+                // Sử dụng click chuẩn kết hợp chặn highlight xanh giúp tối ưu hóa đa nền tảng
                 card.addEventListener('click', () => onCardClick(card));
                 gridLayer.appendChild(card);
             });
 
-            // Bộ đếm thời gian ván đấu
             if (currentStageIndex === 0) {
                 gameTime = 0;
                 timerTxt.querySelector('span').innerText = gameTime;

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Siêu Tốc Độ - Mật Độ Xe Tăng Dần</title>
     <style>
         body {
@@ -13,33 +13,37 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
 
+        /* Khung chứa game tự động co giãn theo tỷ lệ màn hình 5:6 */
         #game-container {
             position: relative;
-            width: 500px;
-            height: 600px;
+            width: 92vw;
+            max-width: 500px;
+            aspect-ratio: 500 / 600;
             background-color: #2e7d32; 
             border: 4px solid #fff;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             overflow: hidden;
+            touch-action: none; /* Khóa cuộn trang và zoom màn hình trên điện thoại */
         }
 
         #ui-layer {
             position: absolute;
-            top: 15px;
+            top: 3%;
             left: 0;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 25px;
+            padding: 0 5%;
             box-sizing: border-box;
             color: white;
-            font-size: 16px;
+            font-size: clamp(11px, 2.2vw, 16px);
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             z-index: 10;
@@ -47,15 +51,15 @@
 
         #ui-layer span {
             color: #ffd700;
-            font-size: 20px;
+            font-size: clamp(14px, 3vw, 20px);
         }
 
         #stage-banner {
             position: absolute;
-            top: 55px;
+            top: 10%;
             width: 100%;
             text-align: center;
-            font-size: 22px;
+            font-size: clamp(14px, 3.5vw, 22px);
             font-weight: bold;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
@@ -64,10 +68,10 @@
 
         #turbo-alert {
             position: absolute;
-            bottom: 130px;
+            bottom: 22%;
             width: 100%;
             text-align: center;
-            font-size: 26px;
+            font-size: clamp(18px, 4.5vw, 26px);
             font-weight: bold;
             color: #ff3333;
             text-shadow: 2px 2px 5px #000;
@@ -76,14 +80,21 @@
             animation: blink 0.15s infinite alternate;
         }
 
-        @keyframes blink {
-            0% { opacity: 0.3; transform: scale(0.95); }
-            100% { opacity: 1; transform: scale(1.05); }
+        @canvas-style {
+            display: block;
+            background-color: #444; 
         }
 
         canvas {
             display: block;
-            background-color: #444; 
+            background-color: #444;
+            width: 100%;
+            height: 100%;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.3; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.05); }
         }
 
         .screen {
@@ -99,27 +110,28 @@
             justify-content: center;
             color: white;
             z-index: 20;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .screen h1 {
-            font-size: 34px;
+            font-size: clamp(18px, 5vw, 34px);
             color: #ff9800;
             margin-bottom: 5px;
             text-shadow: 2px 2px 4px #000;
-            text-align: center;
         }
 
         .screen p {
             color: #ccc;
             margin-bottom: 25px;
-            font-size: 16px;
-            text-align: center;
+            font-size: clamp(12px, 2.5vw, 16px);
             max-width: 420px;
         }
 
         button {
-            padding: 12px 35px;
-            font-size: 18px;
+            padding: 10px 30px;
+            font-size: clamp(14px, 2.5vw, 18px);
             font-weight: bold;
             background-color: #ff9800;
             color: white;
@@ -128,6 +140,7 @@
             cursor: pointer;
             transition: transform 0.2s, background-color 0.2s;
             box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:hover {
@@ -155,9 +168,9 @@
             <h1>SIÊU TỐC ĐỘ: MẬT ĐỘ TĂNG TIẾN</h1>
             <p>Càng về các vòng sau, số lượng xe cản đường xuất hiện sẽ càng đông đúc và dày đặc!</p>
             <button onclick="startGame()">Bắt đầu đua</button>
-            <p style="font-size: 13px; color: #888; margin-top: 15px; line-height: 1.5; text-align: center;">
-                <b>Cách 1 (Chuột):</b> Rê chuột qua lại để rẽ lái. <b>Nhấn giữ chuột trái</b> để tăng tốc.<br>
-                <b>Cách 2 (Bàn phím):</b> Dùng phím phím <b>A/D</b> để rẽ. Nhấn giữ phím <b>W / LÊN</b> để tăng tốc.
+            <p style="font-size: clamp(10px, 2vw, 13px); color: #888; margin-top: 15px; line-height: 1.5;">
+                <b>Trên PC:</b> Di chuột hoặc dùng phím <b>A/D</b> để lái xe. Giữ chuột trái hoặc phím <b>W / LÊN</b> để tăng tốc.<br>
+                <b>Trên Phone:</b> Chạm vuốt ngón tay qua lại để lái xe và tự động tăng tốc cực đại!
             </p>
         </div>
 
@@ -182,7 +195,7 @@
         </div>
     </div>
 
-    <script {l-tiger}>
+    <script>
         const container = document.getElementById('game-container');
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -199,10 +212,9 @@
         const victoryScreen = document.getElementById('victory-screen');
         const gameoverScreen = document.getElementById('gameover-screen');
 
-        // Cấu hình thông số Vòng đua & Mật độ xe địch tối đa (maxObstacles) tăng tiến dần
         const STAGES = [
             { id: 1, name: "Khởi Hành 🛣️", baseSpeed: 5,  turboSpeed: 10, maxObstacles: 2, label: "VÒNG 1: KHỞI HÀNH 🛣️" },
-            { id: 2, name: "Tăng Tốc 🏎️",  baseSpeed: 7,  turboSpeed: 13, maxObstacles: 2, label: "VÒNG 2: TẰNG TỐC 🏎️" },
+            { id: 2, name: "Tăng Tốc 🏎️",  baseSpeed: 7,  turboSpeed: 13, maxObstacles: 2, label: "VÒNG 2: TĂNG TỐC 🏎️" },
             { id: 3, name: "Cao Tốc 🚀",  baseSpeed: 9,  turboSpeed: 16, maxObstacles: 3, label: "VÒNG 3: CAO TỐC 🚀" },
             { id: 4, name: "Tử Thần 💀",  baseSpeed: 11, turboSpeed: 19, maxObstacles: 4, label: "VÒNG 4: TỬ THẦN 💀" },
             { id: 5, name: "Vô Cực 🌌",  baseSpeed: 13, turboSpeed: 23, maxObstacles: 5, label: "VÒNG 5: VÔ CỰC 🌌" }
@@ -232,17 +244,24 @@
 
         let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, a: false, d: false, w: false };
         let isLeftMouseDown = false;
+        let isTouching = false; // Theo dõi người chơi có đang chạm vuốt màn hình (Mobile) hay không
 
-        // 1. LẮNG NGHE SỰ KIỆN BÀN PHÍM
+        // --- HÀM TÍNH TOÁN TỌA ĐỘ THEO TỶ LỆ KHUNG HÌNH THỰC TẾ ---
+        function updateTargetXFromClient(clientX) {
+            let rect = container.getBoundingClientRect();
+            // Quy đổi chính xác vị trí ngón tay/chuột dựa trên tỷ lệ thực tế sang không gian logic gốc 500px
+            let logicX = ((clientX - rect.left) / rect.width) * 500;
+            player.targetX = logicX - (player.width / 2);
+        }
+
+        // 1. SỰ KIỆN BÀN PHÍM (PC)
         window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if (e.key in keys) keys[e.key] = false; });
 
-        // 2. LẮNG NGHE SỰ KIỆN CHUỘT
+        // 2. SỰ KIỆN CHUỘT (PC)
         container.addEventListener('mousemove', function(e) {
-            if (isGameOver) return;
-            let rect = container.getBoundingClientRect();
-            let mouseX = e.clientX - rect.left;
-            player.targetX = mouseX - (player.width / 2);
+            if (isGameOver || isTouching) return; // Nếu đang xài cảm ứng thì bỏ qua sự kiện chuột này
+            updateTargetXFromClient(e.clientX);
         });
 
         container.addEventListener('mousedown', function(e) {
@@ -251,6 +270,27 @@
         window.addEventListener('mouseup', function(e) {
             if (e.button === 0) isLeftMouseDown = false;
         });
+
+        // 3. SỰ KIỆN CẢM ỨNG (MOBILE)
+        container.addEventListener('touchstart', function(e) {
+            if (isGameOver) return;
+            isTouching = true;
+            if (e.touches.length > 0) {
+                updateTargetXFromClient(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchmove', function(e) {
+            if (isGameOver) return;
+            if (e.touches.length > 0) {
+                updateTargetXFromClient(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', function() {
+            isTouching = false;
+        });
+
 
         function showStartScreen() {
             victoryScreen.style.display = 'none';
@@ -305,7 +345,8 @@
             if (isGameOver) return;
 
             let stageData = STAGES[currentStageIndex];
-            let isAccelerating = keys.ArrowUp || keys.w || isLeftMouseDown;
+            // Trên Mobile, chỉ cần đang chạm ngón tay lái xe (isTouching) là tự động kích hoạt Turbo BOOST
+            let isAccelerating = keys.ArrowUp || keys.w || isLeftMouseDown || isTouching;
 
             if (isAccelerating) {
                 currentSpeed += (stageData.turboSpeed - currentSpeed) * 0.1;
@@ -329,15 +370,12 @@
             lineOffset += currentSpeed;
             if (lineOffset > 60) lineOffset = 0;
 
-            // --- THUẬT TOÁN ĐIỀU KHIỂN MẬT ĐỘ XE TĂNG TIẾN THÔNG MINH ---
-            // Số lượng tối đa xe cùng xuất hiện (stageData.maxObstacles) tăng dần từ 2 lên 5 con ở các vòng sau.
             if (Math.random() < 0.04 && obstacles.length < stageData.maxObstacles) {
                 let lanes = [100, 215, 330];
                 let randomX = lanes[Math.floor(Math.random() * lanes.length)];
                 let canSpawn = true;
                 
                 for (let obs of obstacles) { 
-                    // Chống dính chùm: Dù xe xuất hiện nhiều, khoảng cách giữa các xe trên cùng làn phải cách nhau ít nhất 180px
                     if (obs.x === randomX && obs.y < 180) {
                         canSpawn = false; 
                     }
@@ -351,14 +389,12 @@
                 }
             }
 
-            // Sinh tiền xu
             if (Math.random() < 0.02 && coins.length < 3) {
                 let lanes = [120, 235, 350];
                 let randomX = lanes[Math.floor(Math.random() * lanes.length)];
                 coins.push({ x: randomX, y: -40, radius: 12 });
             }
 
-            // Di chuyển và kiểm tra va chạm xe địch
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += currentSpeed * 0.65; 
@@ -374,7 +410,6 @@
                 if (obs.y > 650) obstacles.splice(i, 1);
             }
 
-            // Di chuyển và ăn xu
             for (let i = coins.length - 1; i >= 0; i--) {
                 let coin = coins[i];
                 coin.y += currentSpeed;
@@ -399,6 +434,7 @@
             clearInterval(timerInterval);
             turboAlert.style.display = 'none';
             isLeftMouseDown = false; 
+            isTouching = false;
 
             if (currentStageIndex < STAGES.length - 1) {
                 let nextStageData = STAGES[currentStageIndex + 1];
@@ -463,6 +499,7 @@
             clearInterval(gameInterval);
             clearInterval(timerInterval);
             isLeftMouseDown = false; 
+            isTouching = false;
             document.getElementById('fail-stage').innerText = currentStageIndex + 1;
             document.getElementById('final-score').innerText = Math.floor(score);
             gameoverScreen.style.display = 'flex';

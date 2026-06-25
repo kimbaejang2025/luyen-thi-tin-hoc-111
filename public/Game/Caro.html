@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Trò Chơi Cờ Caro Rèn Trí Tuệ</title>
     <style>
         :root {
@@ -19,6 +19,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
         .header {
@@ -27,7 +28,7 @@
             color: white;
             text-align: center;
             padding: 15px 0;
-            font-size: 28px;
+            font-size: clamp(18px, 4vw, 28px);
             font-weight: bold;
             text-transform: uppercase;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -36,34 +37,37 @@
 
         .control-panel {
             background-color: white;
-            padding: 20px;
-            margin: 20px auto;
+            padding: 15px;
+            margin: 15px auto;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            max-width: 800px;
             width: 90%;
+            max-width: 600px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             align-items: center;
+            box-sizing: border-box;
         }
 
         .row {
+            width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 8px 16px;
+            font-size: clamp(13px, 2.5vw, 16px);
             font-weight: bold;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:active {
@@ -74,64 +78,86 @@
         .btn-x { background-color: #dc3545; color: white; }
         .btn-green { background-color: #0f8a5f; color: white; }
         .btn-red { background-color: #d9383a; color: white; }
-        .btn-start { background-color: #007bff; color: white; }
+        .btn-start { background-color: #2196f3; color: white; }
 
         .btn-o.active, .btn-x.active {
             outline: 3px solid #000;
         }
 
         .stats, .info-text {
-            font-size: 16px;
+            font-size: clamp(13px, 2.5vw, 16px);
             font-weight: bold;
         }
 
         .info-text {
             color: #555;
             font-style: italic;
+            text-align: center;
+            width: 100%;
+            margin: 2px 0;
         }
 
         input[type="number"] {
-            padding: 6px 10px;
-            font-size: 16px;
+            padding: 4px 8px;
+            font-size: 14px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            width: 80px;
+            width: 50px;
             text-align: center;
         }
 
+        /* Khung chứa bàn cờ tự động thích ứng màn hình */
         .board-container {
-            overflow-x: auto;
-            max-width: 100%;
-            padding: 10px;
+            width: 100%;
+            max-width: 600px; /* Giới hạn kích thước tối đa trên PC */
+            padding: 0 10px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
         }
 
+        /* Thiết lập Grid linh hoạt theo tỷ lệ phần trăm */
         .board {
             display: grid;
-            grid-template-columns: repeat(15, 40px);
-            grid-template-rows: repeat(15, 40px);
-            gap: 4px;
+            grid-template-columns: repeat(15, minmax(0, 1fr));
+            gap: 2px;
+            width: 100%;
+            background-color: #ccc;
+            border: 3px solid var(--primary-color);
+            border-radius: 6px;
+            overflow: hidden;
         }
 
+        /* Ô cờ tự giữ tỷ lệ vuông 1:1 và cấu hình Container Query */
         .cell {
             background-color: var(--cell-bg);
-            border-radius: 4px;
+            aspect-ratio: 1 / 1; 
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
             font-weight: bold;
             cursor: pointer;
             user-select: none;
+            -webkit-user-select: none;
             transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            container-type: inline-size; /* Kích hoạt theo dõi kích thước ô cờ */
         }
 
-        .cell:hover {
-            background-color: var(--cell-hover);
+        /* Cỡ chữ tự co giãn theo chiều rộng thực tế của chính ô cờ đó */
+        .cell-content {
+            font-size: 65cqw; 
+            line-height: 1;
+        }
+
+        @media (hover: hover) {
+            .cell:hover {
+                background-color: var(--cell-hover);
+            }
         }
 
         .cell.O { color: #007bff; }
         .cell.X { color: #dc3545; }
-        .cell.disabled { cursor: not-allowed; }
+        .cell.disabled { cursor: not-allowed; background-color: #f0f0f0; }
     </style>
 </head>
 <body>
@@ -143,15 +169,16 @@
             <button class="btn-o active" id="btnSelectO" onclick="selectSide('O')">Chọn O</button>
             <button class="btn-x" id="btnSelectX" onclick="selectSide('X')">Chọn X</button>
             <div class="stats">Điểm: <span id="scoreHuman">0</span> - <span id="scoreAI">0</span></div>
-            <div class="stats">Lượt chơi: <input type="number" id="turnCount" value="0" readonly></div>
+            <div class="stats">Lượt: <input type="number" id="turnCount" value="0" readonly></div>
         </div>
 
         <div class="row">
-            <button class="btn-green" onclick="changeTheme('green')">Chọn Màu Xanh</button>
-            <button class="btn-red" onclick="changeTheme('red')">Chọn Màu Đỏ</button>
-            <div class="info-text" id="turnIndicator">Người đi trước ván này</div>
-            <button class="btn-start" onclick="initGame()">Bắt đầu trò chơi</button>
+            <button class="btn-green" onclick="changeTheme('green')">Màu Xanh</button>
+            <button class="btn-red" onclick="changeTheme('red')">Màu Đỏ</button>
+            <button class="btn-start" onclick="initGame()">Bắt đầu chơi</button>
         </div>
+        
+        <div class="info-text" id="turnIndicator">Người đi trước ván này</div>
     </div>
 
     <div class="board-container">
@@ -168,8 +195,6 @@
         let scoreHuman = 0;
         let scoreAI = 0;
         
-        // Biến kiểm soát ai đi trước ở đầu trận: 'human' hoặc 'ai'
-        // Mặc định ban đầu ván 1 là người đi trước
         let currentFirstPlayer = 'human'; 
 
         function createBoard() {
@@ -183,6 +208,12 @@
                     cell.classList.add('cell');
                     cell.dataset.row = r;
                     cell.dataset.col = c;
+                    
+                    // Tạo thẻ span bọc nội dung bên trong để tận dụng Container Queries
+                    const span = document.createElement('span');
+                    span.classList.add('cell-content');
+                    cell.appendChild(span);
+
                     cell.addEventListener('click', () => makeMove(r, c));
                     boardElement.appendChild(cell);
                 }
@@ -217,12 +248,11 @@
             currentTurn = 0;
             document.getElementById('turnCount').value = currentTurn;
 
-            // Hiển thị trạng thái ai đi trước trực quan lên giao diện
             if (currentFirstPlayer === 'human') {
                 document.getElementById('turnIndicator').innerText = "Người đi trước ván này";
             } else {
                 document.getElementById('turnIndicator').innerText = "Máy đi trước ván này";
-                setTimeout(aiMove, 300); // Máy tự kích hoạt nước đi đầu tiên nếu đi trước
+                setTimeout(aiMove, 300); 
             }
         }
 
@@ -232,20 +262,19 @@
             placePiece(r, c, humanSide);
 
             if (checkWin(r, c, humanSide)) {
-                alert("Chúc mừng! Bạn đã chiến thắng!");
-                scoreHuman++;
-                document.getElementById('scoreHuman').innerText = scoreHuman;
-                isGameActive = false;
-                
-                // Người thắng thì ván sau phải đi sau -> Máy đi trước
-                currentFirstPlayer = 'ai'; 
-                document.getElementById('turnIndicator').innerText = "Máy đi trước ván tiếp theo";
+                setTimeout(() => {
+                    alert("Chúc mừng! Bạn đã chiến thắng!");
+                    scoreHuman++;
+                    document.getElementById('scoreHuman').innerText = scoreHuman;
+                    isGameActive = false;
+                    currentFirstPlayer = 'ai'; 
+                    document.getElementById('turnIndicator').innerText = "Máy đi trước ván tiếp theo";
+                }, 50);
                 return;
             }
 
             if (isBoardFull()) {
-                alert("Hòa cờ!");
-                isGameActive = false;
+                setTimeout(() => { alert("Hòa cờ!"); isGameActive = false; }, 50);
                 return;
             }
 
@@ -256,7 +285,7 @@
             boardState[r][c] = side;
             const index = r * SIZE + c;
             const cell = document.getElementById('board').children[index];
-            cell.innerText = side;
+            cell.querySelector('.cell-content').innerText = side;
             cell.classList.add(side, 'disabled');
             
             currentTurn++;
@@ -275,24 +304,22 @@
             if (move) {
                 placePiece(move.r, move.c, aiSide);
                 if (checkWin(move.r, move.c, aiSide)) {
-                    alert("Máy đã chiến thắng! Thử lại ở ván sau nhé.");
-                    scoreAI++;
-                    document.getElementById('scoreAI').innerText = scoreAI;
-                    isGameActive = false;
-                    
-                    // Máy thắng thì ván sau Máy đi sau -> Người đi trước
-                    currentFirstPlayer = 'human';
-                    document.getElementById('turnIndicator').innerText = "Người đi trước ván tiếp theo";
+                    setTimeout(() => {
+                        alert("Máy đã chiến thắng! Thử lại ở ván sau nhé.");
+                        scoreAI++;
+                        document.getElementById('scoreAI').innerText = scoreAI;
+                        isGameActive = false;
+                        currentFirstPlayer = 'human';
+                        document.getElementById('turnIndicator').innerText = "Người đi trước ván tiếp theo";
+                    }, 50);
                 }
             }
         }
 
-        // --- THUẬT TOÁN AI MẶC ĐỊNH: KHÓ ---
         function getHardMove() {
             let bestScore = -1;
             let bestMoves = [];
 
-            // Nếu đây là nước đi đầu tiên của toàn trận và Máy đi trước, chiếm ngay trung tâm
             if (currentTurn === 0) {
                 return { r: Math.floor(SIZE/2), c: Math.floor(SIZE/2) };
             }
@@ -303,7 +330,6 @@
                         let attack = evaluateCellHard(r, c, aiSide);
                         let defense = evaluateCellHard(r, c, humanSide);
                         
-                        // Nhân hệ số chặn nguy hiểm để cản phá các chuỗi thắng của người chơi
                         let totalScore = attack + defense * 1.4; 
 
                         if (totalScore > bestScore) {
@@ -318,7 +344,6 @@
             return bestMoves[Math.floor(Math.random() * bestMoves.length)];
         }
 
-        // Đánh giá sâu ma trận ô cờ (Quét khoảng trống hai đầu và thiết lập bẫy cờ)
         function evaluateCellHard(r, c, side) {
             let score = 0;
             const dirs = [[1,0], [0,1], [1,1], [1,-1]];
@@ -349,7 +374,6 @@
                     i++;
                 }
 
-                // Cách chấm điểm dựa theo tính chất chuỗi và thế cờ trống đầu
                 if (count >= 5) score += 100000; 
                 else if (count === 4) {
                     if (openEnds === 2) score += 10000; 

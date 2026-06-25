@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Khủng Long Hoạt Hình - Dino Run</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Game Khủng Long Hoạt Hình - Dino Run Acceleration</title>
     <style>
         :root {
             --bg-color: #e0f7fa; /* Màu nền trời ban ngày nhạt dễ chịu */
@@ -28,21 +28,25 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
 
+        /* Khung game tự động co giãn theo tỷ lệ màn hình chuẩn 8:3 */
         #game-container {
             position: relative;
-            width: 800px;
-            height: 300px;
+            width: 95vw;
+            max-width: 800px;
+            aspect-ratio: 800 / 300;
             background-color: var(--bg-color);
             border: 4px solid #fff;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             overflow: hidden;
             transition: background-color 0.8s;
+            touch-action: none; /* Khóa cuộn trang và zoom màn hình trên điện thoại */
         }
 
         /* Bảng tính điểm */
@@ -50,7 +54,7 @@
             position: absolute;
             top: 15px;
             right: 20px;
-            font-size: 18px;
+            font-size: clamp(11px, 2.5vw, 18px);
             font-weight: bold;
             color: var(--text-color);
             letter-spacing: 1px;
@@ -89,26 +93,25 @@
             border-radius: 50%;
             transition: background-color 0.8s;
         }
-        .cloud-1 { width: 60px; height: 20px; left: 200px; top: 50px; }
+        .cloud-1 { width: 60px; height: 20px; left: 25%; top: 50px; }
         .cloud-1::before { width: 30px; height: 30px; top: -15px; left: 10px; }
         .cloud-1::after { width: 25px; height: 25px; top: -10px; right: 10px; }
 
-        .cloud-2 { width: 80px; height: 25px; left: 600px; top: 30px; }
+        .cloud-2 { width: 80px; height: 25px; left: 75%; top: 30px; }
         .cloud-2::before { width: 40px; height: 40px; top: -20px; left: 15px; }
         .cloud-2::after { width: 30px; height: 30px; top: -12px; right: 15px; }
 
 
-        /* KHỦNG LONG HOẠT HÌNH (DINO) DỰNG BẰNG CSS CSS-ART */
+        /* KHỦNG LONG HOẠT HÌNH (DINO) DỰNG BẰNG CSS-ART */
         #dino {
             position: absolute;
-            bottom: 40px; /* Đứng trên mặt đất */
+            bottom: 40px; 
             left: 50px;
             width: 44px;
             height: 48px;
             z-index: 5;
         }
 
-        /* Thân và đầu của chú khủng long xanh đáng yêu */
         .dino-body {
             position: absolute;
             width: 32px;
@@ -119,7 +122,6 @@
             left: 4px;
             box-shadow: inset -4px -4px 0px #2e7d32;
         }
-        /* Đầu nhô ra phía trước */
         .dino-head {
             position: absolute;
             width: 24px;
@@ -130,7 +132,6 @@
             border-radius: 6px;
             box-shadow: inset -2px 2px 0px #81c784;
         }
-        /* Mắt to tròn vui nhộn */
         .dino-eye {
             position: absolute;
             width: 6px;
@@ -150,7 +151,6 @@
             top: 1px;
             right: 1px;
         }
-        /* Cái đuôi nhỏ phía sau */
         .dino-tail {
             position: absolute;
             width: 12px;
@@ -162,7 +162,6 @@
             transform: rotate(-30deg);
         }
 
-        /* Đôi chân chuyển động bước đi luân phiên khi chạy */
         .leg {
             position: absolute;
             width: 6px;
@@ -174,7 +173,6 @@
         .leg-left { left: 10px; }
         .leg-right { left: 24px; }
 
-        /* Animation bước chân sinh động */
         .dino-walking .leg-left {
             animation: walk 0.2s infinite alternate;
         }
@@ -187,14 +185,13 @@
             100% { height: 8px; transform: translateY(2px); }
         }
 
-        /* Trạng thái nhảy lên không trung */
         .jump {
-            animation: dinoJump 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            animation: dinoJump 0.55s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         @keyframes dinoJump {
             0% { bottom: 40px; }
-            50% { bottom: 160px; } /* Độ cao bước nhảy */
+            50% { bottom: 165px; } 
             100% { bottom: 40px; }
         }
 
@@ -205,11 +202,10 @@
             bottom: 40px;
             width: 25px;
             height: 45px;
-            background-color: #ff9800; /* Màu cam nổi bật vui nhộn */
+            background-color: #ff9800; 
             border-radius: 6px;
             box-shadow: inset -3px -3px 0px #e65100;
         }
-        /* Nhánh xương rồng bên trái */
         .cactus::before {
             content: '';
             position: absolute;
@@ -221,7 +217,6 @@
             border-radius: 4px 0 0 4px;
             border-bottom: 4px solid #e65100;
         }
-        /* Nhánh xương rồng bên phải */
         .cactus::after {
             content: '';
             position: absolute;
@@ -249,18 +244,25 @@
             justify-content: center;
             color: white;
             z-index: 20;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .screen h1 {
-            font-size: 38px;
+            font-size: clamp(20px, 5vw, 36px);
             color: #4caf50;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
+        .screen p {
+            font-size: clamp(12px, 2.5vw, 16px);
+        }
+
         button {
-            padding: 12px 28px;
-            font-size: 18px;
+            padding: 10px 28px;
+            font-size: clamp(14px, 2.5vw, 18px);
             font-weight: bold;
             background-color: #ff9800;
             color: white;
@@ -269,6 +271,7 @@
             cursor: pointer;
             transition: transform 0.2s, background-color 0.2s;
             box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:hover {
@@ -278,8 +281,9 @@
 
         .hint {
             margin-top: 15px;
-            font-size: 14px;
+            font-size: clamp(11px, 2vw, 14px);
             color: #bbb;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -307,7 +311,10 @@
         <div id="start-screen" class="screen">
             <h1>DINO RUN ADVENTURE</h1>
             <button onclick="startGame()">Bắt đầu chơi</button>
-            <div class="hint">Mẹo: Nhấn phím <b>CÁCH (SPACE)</b>, <b>MŨI TÊN LÊN</b> hoặc <b>CLICK CHUỘT</b> để nhảy.</div>
+            <div class="hint">
+                <b>Trên PC:</b> Nhấn phím SPACE (CÁCH), MŨI TÊN LÊN hoặc Click chuột.<br>
+                <b>Trên Phone:</b> Chạm ngón tay vào bất kỳ đâu trên màn hình để nhảy bơi!
+            </div>
         </div>
 
         <div id="gameover-screen" class="screen" style="display: none;">
@@ -330,89 +337,84 @@
         let score = 0;
         let highScore = localStorage.getItem('dino_highscore') || 0;
 
-        let gameSpeed = 6; // Tốc độ chạy nền của game, tăng dần theo thời gian
+        // CẤU HÌNH HỆ THỐNG GIA TỐC TĂNG TIẾN TỰ ĐỘNG
+        const INITIAL_SPEED = 4.5; // Tốc độ khởi đầu chậm rãi để làm quen
+        let gameSpeed = INITIAL_SPEED;
         let obstacles = [];
         let spawnTimer = 0;
 
-        // Đồng bộ điểm cao nhất ban đầu lên giao diện
         highScoreElement.innerText = String(highScore).padStart(5, '0');
 
-        // Hàm khởi động cuộc chơi mới
         function startGame() {
-            // Reset các thông số trạng thái ván đấu
             score = 0;
-            gameSpeed = 6;
+            gameSpeed = INITIAL_SPEED; 
             isGameOver = false;
             isJumping = false;
             spawnTimer = 0;
             
-            // Dọn sạch chướng ngại vật cũ trên màn hình
             obstacles.forEach(obs => obs.element.remove());
             obstacles = [];
 
-            // Ẩn các màn hình menu thông báo
             startScreen.style.display = 'none';
             gameoverScreen.style.display = 'none';
-            container.classList.remove('night-mode'); // Trở lại ban ngày
+            container.classList.remove('night-mode'); 
 
-            // Bật hiệu ứng bước chân cho khủng long
             dino.classList.add('dino-walking');
             dino.style.bottom = '40px';
 
-            // Kích hoạt vòng lặp xử lý logic chuyển động của Game (Game Loop)
             requestAnimationFrame(gameLoop);
         }
 
-        // VÒNG LẶP ĐỒ HỌA CHÍNH (GAME LOOP) - Chạy mượt mà theo tần số quét màn hình
         function gameLoop() {
             if (isGameOver) return;
 
-            // 1. Tăng điểm số theo thời gian chạy sống sót
-            score += 0.15;
+            // 1. Điểm số tăng tỷ lệ thuận với tốc độ hiện tại (chạy nhanh ăn nhiều điểm hơn)
+            score += (gameSpeed * 0.025);
             let displayScore = Math.floor(score);
             scoreElement.innerText = String(displayScore).padStart(5, '0');
 
-            // Hiệu ứng Đổi màu môi trường (Mỗi 300 điểm tự động chuyển giao ngày / đêm)
-            if (Math.floor(displayScore / 300) % 2 === 1) {
+            // Đổi màu môi trường dựa theo mốc điểm
+            if (Math.floor(displayScore / 350) % 2 === 1) {
                 container.classList.add('night-mode');
             } else {
                 container.classList.remove('night-mode');
             }
 
-            // Tốc độ game tăng dần cực kỳ mượt mà để tăng tính thử thách cho người chơi
-            gameSpeed += 0.002;
+            // --- THUẬT TOÁN TĂNG TỐC DỒN DẬP (ACCELERATION LOGIC) ---
+            // Ban đầu gameSpeed tăng rất chậm, càng về sau gia tốc cộng vào mỗi khung hình càng lớn
+            let accelerationFactor = 0.001 + (gameSpeed * 0.00015);
+            gameSpeed += accelerationFactor;
 
-            // 2. Xử lý tạo và dịch chuyển các Đám mây trôi nhẹ nhàng phía sau
+            // Di chuyển mây nền
             moveClouds();
 
-            // 3. Tiến hành kiểm soát và sinh ngẫu nhiên Xương rồng mới
+            // 2. Kiểm soát nhịp độ sinh Xương Rồng thông minh theo vận tốc
             spawnTimer++;
-            // Tỷ lệ sinh xương rồng dựa trên thời gian ngẫu nhiên để tránh rập khuôn
-            if (spawnTimer > Math.max(40, 90 - Math.floor(gameSpeed * 2))) {
-                if (Math.random() > 0.4) {
+            // Tốc độ càng cao thì khoảng cách thời gian tối thiểu giữa các cây xương rồng càng thu ngắn lại
+            let spawnCooldown = Math.max(30, 100 - Math.floor(gameSpeed * 5));
+            if (spawnTimer > spawnCooldown) {
+                if (Math.random() > 0.45) {
                     createCactus();
-                    spawnTimer = 0; // Đặt lại bộ đếm nhịp sinh
+                    spawnTimer = 0; 
                 }
             }
 
-            // 4. Di chuyển chướng ngại vật xương rồng và tính toán Va chạm
+            // 3. Di chuyển chướng ngại vật & Tính toán va chạm
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                obs.left -= gameSpeed; // Tịnh tiến dịch chuyển sang bên trái màn hình
+                obs.left -= gameSpeed; 
                 obs.element.style.left = obs.left + 'px';
 
-                // Nếu chướng ngại vật đã chạy khuất hoàn toàn khỏi màn hình bên trái
                 if (obs.left < -40) {
                     obs.element.remove();
                     obstacles.splice(i, 1);
                     continue;
                 }
 
-                // KIỂM TRA THUẬT TOÁN VA CHẠM (AABB Collision Detection)
+                // Thuật toán kiểm tra va chạm bằng hộp giới hạn (AABB) có độ bo an toàn cao
                 let dinoRect = dino.getBoundingClientRect();
                 let obsRect = obs.element.getBoundingClientRect();
 
-                // Tạo khoảng biên an toàn nhỏ (padding 6px) để tránh va chạm ảo, tăng trải nghiệm tốt cho người chơi
                 if (
                     dinoRect.right - 6 > obsRect.left &&
                     dinoRect.left + 6 < obsRect.right &&
@@ -427,61 +429,58 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Tạo phần tử cây xương rồng ngẫu nhiên
         function createCactus() {
             const element = document.createElement('div');
             element.classList.add('cactus');
             
-            // Tạo kích thước chiều cao ngẫu nhiên cho cây xương rồng sinh động vui nhộn
-            let height = Math.floor(Math.random() * 20) + 35; // Dao động từ 35px đến 55px
+            // Chiều cao ngẫu nhiên tăng tính bất ngờ
+            let height = Math.floor(Math.random() * 22) + 33; 
             element.style.height = height + 'px';
             
-            let startLeft = 800; // Xuất hiện từ ngoài rìa phải màn hình
+            // Xuất phát linh hoạt từ góc phải thực tế của màn hình chứa thiết bị
+            let startLeft = container.clientWidth; 
             element.style.left = startLeft + 'px';
             
             container.appendChild(element);
             obstacles.push({ element: element, left: startLeft });
         }
 
-        // Xử lý dịch chuyển mây nền nhẹ nhàng
         function moveClouds() {
             const c1 = document.getElementById('cloud1');
             const c2 = document.getElementById('cloud2');
 
-            let c1Left = c1.offsetLeft - (gameSpeed * 0.15); // Mây trôi chậm hơn tốc độ chạy để tạo hiệu ứng chiều sâu không gian
+            let maxBound = container.clientWidth;
+            let c1Left = c1.offsetLeft - (gameSpeed * 0.15); 
             let c2Left = c2.offsetLeft - (gameSpeed * 0.12);
 
-            if (c1Left < -80) c1Left = 850;
-            if (c2Left < -100) c2Left = 850;
+            if (c1Left < -80) c1Left = maxBound + 50;
+            if (c2Left < -100) c2Left = maxBound + 50;
 
             c1.style.left = c1Left + 'px';
             c2.style.left = c2Left + 'px';
         }
 
-        // Kích hoạt cú nhảy nhảy cho Khủng Long
         function jump() {
             if (isJumping || isGameOver) return;
 
             isJumping = true;
-            dino.classList.remove('dino-walking'); // Dừng cử động bước chân khi đang trên không
+            dino.classList.remove('dino-walking'); 
             dino.classList.add('jump');
 
-            // Thời gian của animation nhảy là 600ms (0.6 giây) tương ứng CSS
+            // Thời gian bật nhảy được căn chỉnh khớp 550ms gọn gàng theo tốc độ cao ván đấu
             setTimeout(() => {
                 dino.classList.remove('jump');
                 if (!isGameOver) {
-                    dino.classList.add('dino-walking'); // Tiếp đất thì tiếp tục chạy bộ
+                    dino.classList.add('dino-walking'); 
                 }
                 isJumping = false;
-            }, 600);
+            }, 550);
         }
 
-        // Kết thúc trò chơi khi va chạm chướng ngại vật
         function triggerGameOver() {
             isGameOver = true;
-            dino.classList.remove('dino-walking'); // Khủng long đứng bất động
+            dino.classList.remove('dino-walking'); 
 
-            // Kiểm tra và cập nhật kỷ lục High Score cục bộ
             let finalScore = Math.floor(score);
             if (finalScore > highScore) {
                 highScore = finalScore;
@@ -489,28 +488,43 @@
                 highScoreElement.innerText = String(highScore).padStart(5, '0');
             }
 
-            // Hiển thị màn hình báo thua cuộc
             gameoverScreen.style.display = 'flex';
         }
 
-        // LẮNG NGHE CÁC SỰ KIỆN TƯƠNG TÁC TỪ NGƯỜI CHƠI
+        // --- LẮNG NGHE TƯƠNG TÁC BÀN PHÍM (PC) ---
         window.addEventListener('keydown', function(e) {
-            if (e.key === ' ' || e.key === 'ArrowUp') {
-                e.preventDefault(); // Tránh bị cuộn trang khi nhấn Space/Mũi tên
+            if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'Up') {
+                e.preventDefault(); 
                 if (isGameOver && startScreen.style.display === 'none') {
-                    startGame(); // Phím tắt chơi lại nhanh khi đang ở màn hình Game Over
+                    startGame(); 
                 } else {
                     jump();
                 }
             }
         });
 
-        // Hỗ trợ click chuột hoặc chạm màn hình điện thoại đều có thể nhảy thuận tiện
+        // --- LẮNG NGHE TƯƠNG TÁC CHUỘT (PC) ---
         container.addEventListener('mousedown', function(e) {
-            if (!isGameOver) {
-                jump();
+            if (e.button === 0) {
+                if (isGameOver && startScreen.style.display === 'none') {
+                    startGame();
+                } else {
+                    jump();
+                }
             }
         });
+
+        // --- LẮNG NGHE TƯƠNG TÁC CẢM ỨNG (MOBILE) ---
+        container.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // Triệt tiêu độ trễ nhấp phản hồi của trình duyệt di động
+            if (isGameOver) {
+                if (startScreen.style.display === 'none') {
+                    startGame();
+                }
+            } else {
+                jump();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>

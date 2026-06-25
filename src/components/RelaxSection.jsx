@@ -17,7 +17,7 @@ const GAMES = [
     id: 'bida',
     title: 'Bi-a Thể Thao',
     desc: 'Trò chơi bi-a hấp dẫn, rèn luyện kỹ năng ngắm bắn chuẩn xác và tính toán góc bóng.',
-    path: '/Game/Bida.html',
+    path: '/Game/Bia-a.html',
     tag: 'Trí tuệ • Khéo léo',
     color: 'var(--color-primary)',
     icon: 'Network',
