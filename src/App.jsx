@@ -55,6 +55,7 @@ export default function App() {
   const [examCategoryFilter, setExamCategoryFilter] = useState('all');
   const [subYearFilter, setSubYearFilter] = useState('all');
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
 
   // Load initial data
   useEffect(() => {
@@ -460,7 +461,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isNavbarVisible ? '' : 'navbar-hidden'}`}>
       {/* Decorative background glows */}
       <div className="glow-bg" />
       <div className="glow-bg-2" />
@@ -477,7 +478,17 @@ export default function App() {
         onOpenLogin={() => setIsAuthModalOpen(true)}
         theme={theme}
         toggleTheme={toggleTheme}
+        isNavbarVisible={isNavbarVisible}
       />
+
+      {/* Floating Toggle Button */}
+      <button 
+        className="navbar-toggle-btn"
+        onClick={() => setIsNavbarVisible(!isNavbarVisible)}
+        title={isNavbarVisible ? "Ẩn thanh menu" : "Hiện thanh menu"}
+      >
+        <Icon name={isNavbarVisible ? "EyeOff" : "Eye"} style={{ width: '20px', height: '20px' }} />
+      </button>
 
       {/* Main Container */}
       <main className="main-content">

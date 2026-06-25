@@ -1,10 +1,10 @@
 import React from 'react';
 import { Icon } from './Icons';
 
-export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout, onOpenLogin, theme, toggleTheme, student }) {
+export default function Navbar({ activeTab, setActiveTab, currentUser, onLogout, onOpenLogin, theme, toggleTheme, student, isNavbarVisible }) {
   const user = student || currentUser;
   return (
-    <div className="navbar-wrapper">
+    <div className={`navbar-wrapper ${isNavbarVisible !== false ? '' : 'navbar-hidden'}`}>
       <nav className="navbar">
         <div className="navbar-brand" onClick={() => setActiveTab('home')}>
           <Icon name="Cpu" style={{ width: '28px', height: '28px' }} />

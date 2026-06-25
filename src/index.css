@@ -173,6 +173,45 @@ button, input, select, textarea {
   width: 100%;
   margin: 0 auto;
   padding: 100px 24px 60px 24px; /* Account for floating navbar */
+  transition: padding-top var(--transition-normal);
+}
+
+.app-container.navbar-hidden .main-content {
+  padding-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .app-container.navbar-hidden .main-content {
+    padding-top: 16px;
+  }
+}
+
+/* Floating Navbar Toggle Button */
+.navbar-toggle-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-nav);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1010;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.navbar-toggle-btn:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-glow);
 }
 
 /* Floating Navbar */
@@ -184,6 +223,13 @@ button, input, select, textarea {
   z-index: 1000;
   display: flex;
   justify-content: center;
+  transition: transform var(--transition-normal), opacity var(--transition-normal), border-color var(--transition-normal);
+}
+
+.navbar-wrapper.navbar-hidden {
+  transform: translateY(-150px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .navbar {
