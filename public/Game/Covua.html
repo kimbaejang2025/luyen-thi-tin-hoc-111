@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Cờ Vua Trí Tuệ - Hệ Tọa Độ Chuẩn</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: white;
+            user-select: none;
+        }
+
+        h1 {
+            margin: 10px 0;
+            color: #f5c518;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #game-container {
+            display: flex;
+            gap: 30px;
+            background-color: #333;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Khung chứa bàn cờ bao gồm cả nhãn tọa độ biên */
+        .board-wrapper {
+            position: relative;
+            padding: 25px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Bàn cờ chính 8x8 */
+        #chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 65px);
+            grid-template-rows: repeat(8, 65px);
+            border: 2px solid #111;
+        }
+
+        .square {
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.15s;
+        }
+
+        .light { background-color: #f0d9b5; color: #b58863; }
+        .dark { background-color: #b58863; color: #f0d9b5; }
+
+        .square.selected { background-color: #7ab356 !important; }
+        .square.suggested::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 50%;
+            position: absolute;
+        }
+        .square.suggested-capture {
+            box-shadow: inset 0 0 12px rgba(255, 0, 0, 0.6);
+        }
+
+        /* Định dạng các ký tự tọa độ biên (a-h, 1-8) */
+        .coordinate {
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .row-label { width: 25px; height: 65px; left: 0; }
+        .col-label { width: 65px; height: 25px; bottom: 0; }
+
+        /* Bảng điều khiển bên phải */
+        #control-panel {
+            display: flex;
+            flex-direction: column;
+            width: 240px;
+            gap: 15px;
+        }
+
+        .info-box {
+            background-color: #444;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #f5c518;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* Khung hiển thị lịch sử nước đi dạng tọa độ */
+        #move-history {
+            background-color: #222;
+            border: 1px solid #444;
+            border-radius: 6px;
+            height: 120px;
+            overflow-y: auto;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #f5c518;
+            color: #111;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #fff; }
+
+        .piece {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+        }
+        .white-piece { color: #ffffff; filter: drop-shadow(1px 1px 1px #000); }
+        .black-piece { color: #151515; filter: drop-shadow(1px 1px 1px #fff); }
+    </style>
+</head>
+<body>
+
+    <h1>CỜ VUA TRÍ TUỆ NHÂN TẠO</h1>
+
+    <div id="game-container">
+        <div class="board-wrapper">
+            <div id="row-labels-left"></div>
+            
+            <div id="chessboard"></div>
+            
+            <div id="col-labels-bottom" style="display: flex; padding-left: 0px;"></div>
+        </div>
+
+        <div id="control-panel">
+            <div class="info-box">
+                Lượt đi: <span id="turn-txt" style="color: #a3ff7d;">BẠN (Quân Trắng)</span>
+            </div>
+            <div class="info-box">
+                Vị trí vừa đi:<br>
+                <div id="move-history">Khởi tạo trận đấu...</div>
+            </div>
+            <div class="info-box" style="font-size:14px; font-weight:normal;">
+                Trạng thái trận đấu:<br>
+                <span id="status-txt" style="font-weight:bold; color:#f5c518;">Đang thi đấu...</span>
+            </div>
+            <button onclick="resetGame()">Làm mới trận đấu</button>
+        </div>
+    </div>
+
+    <script>
+        const boardEl = document.getElementById('chessboard');
+        const turnTxt = document.getElementById('turn-txt');
+        const statusTxt = document.getElementById('status-txt');
+        const historyEl = document.getElementById('move-history');
+
+        const PIECE_SYMBOLS = {
+            'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+            'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        };
+
+        // Hệ thống chuyển đổi index mảng sang ký hiệu tọa độ cờ vua quốc tế
+        const COL_NAMES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const ROW_NAMES = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+        let board = [
+            ['r','n','b','q','k','b','n','r'],
+            ['p','p','p','p','p','p','p','p'],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['','','','','','','',''],
+            ['P','P','P','P','P','P','P','P'],
+            ['R','N','B','Q','K','B','N','R']
+        ];
+
+        let selectedSquare = null;
+        let possibleMoves = [];
+        let currentTurn = 'W'; 
+        let isGameOver = false;
+
+        // --- MA TRẬN TRỌNG SỐ VỊ TRÍ ---
+        const pawnEval = [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+            [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
+            [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
+            [0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0],
+            [0.5, -0.5, -1.0, 0.0, 0.0, -1.0, -0.5, 0.5],
+            [0.5, 1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ];
+
+        const knightEval = [
+            [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
+            [-4.0, -2.0, 0.0, 0.0, 0.0, 0.0, -2.0, -4.0],
+            [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0, -3.0],
+            [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3.0],
+            [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0, -3.0],
+            [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5, -3.0],
+            [-4.0, -2.0, 0.0, 0.5, 0.5, 0.0, -2.0, -4.0],
+            [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
+        ];
+
+        const bishopEval = [
+            [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
+            [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
+            [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -1.0],
+            [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5, -1.0],
+            [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, -1.0],
+            [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0],
+            [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, -1.0],
+            [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
+        ];
+
+        const rookEval = [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
+            [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+            [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+            [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+            [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+            [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+            [0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+        ];
+
+        const evalQueen = [
+            [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
+            [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
+            [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
+            [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
+            [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
+            [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
+            [-1.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, -1.0],
+            [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
+        ];
+
+        const kingEval = [
+            [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+            [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+            [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+            [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+            [-2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
+            [-1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
+            [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
+            [2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
+        ];
+
+        // KHỞI TẠO TỌA ĐỘ RÌA BIÊN BÀN CỜ
+        function initCoordinates() {
+            const rowLabelsLeft = document.getElementById('row-labels-left');
+            rowLabelsLeft.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const label = document.createElement('div');
+                label.classList.add('coordinate', 'row-label');
+                label.style.top = (25 + i * 65) + 'px';
+                label.innerText = ROW_NAMES[i];
+                rowLabelsLeft.appendChild(label);
+            }
+
+            const colLabelsBottom = document.getElementById('col-labels-bottom');
+            colLabelsBottom.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const label = document.createElement('div');
+                label.classList.add('coordinate', 'col-label');
+                label.style.left = (25 + i * 65) + 'px';
+                label.innerText = COL_NAMES[i];
+                colLabelsBottom.appendChild(label);
+            }
+        }
+
+        function drawBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const square = document.createElement('div');
+                    square.classList.add('square', (r + c) % 2 === 0 ? 'light' : 'dark');
+                    square.dataset.row = r;
+                    square.dataset.col = c;
+
+                    const piece = board[r][c];
+                    if (piece) {
+                        const pieceEl = document.createElement('div');
+                        pieceEl.classList.add('piece', piece === piece.toUpperCase() ? 'white-piece' : 'black-piece');
+                        pieceEl.innerText = PIECE_SYMBOLS[piece];
+                        square.appendChild(pieceEl);
+                    }
+
+                    square.addEventListener('click', () => onSquareClick(r, c));
+                    boardEl.appendChild(square);
+                }
+            }
+        }
+
+        // Hàm ghi nhận lịch sử di chuyển theo định dạng vị trí (vd: e2 -> e4)
+        function logMove(player, fromR, fromC, toR, toC) {
+            const fromCoord = COL_NAMES[fromC] + ROW_NAMES[fromR];
+            const toCoord = COL_NAMES[toC] + ROW_NAMES[toR];
+            const logText = `${player}: ${fromCoord} → ${toCoord}`;
+            
+            if (historyEl.innerText === "Khởi tạo trận đấu...") {
+                historyEl.innerHTML = "";
+            }
+            historyEl.innerHTML += logText + "<br>";
+            historyEl.scrollTop = historyEl.scrollHeight; // Cuộn xuống dòng mới nhất
+        }
+
+        function onSquareClick(r, c) {
+            if (isGameOver || currentTurn === 'B') return;
+
+            const clickedPiece = board[r][c];
+            const isSelectedMove = possibleMoves.some(m => m.toR === r && m.toC === c);
+
+            if (isSelectedMove && selectedSquare) {
+                logMove("Trắng", selectedSquare.r, selectedSquare.c, r, c);
+                executeMove(board, selectedSquare.r, selectedSquare.c, r, c);
+                if (board[r][c] === 'P' && r === 0) board[r][c] = 'Q';
+
+                clearHighlights();
+                selectedSquare = null;
+                possibleMoves = [];
+
+                if (!hasKing(board, 'r')) {
+                    endGame("BẠN ĐÃ CHIẾN THẮNG!");
+                    return;
+                }
+
+                currentTurn = 'B';
+                turnTxt.innerText = "MÁY ĐANG TÍNH...";
+                turnTxt.style.color = "#ff4d4d";
+                
+                setTimeout(makeAIMove, 100); 
+            } else {
+                if (clickedPiece && clickedPiece === clickedPiece.toUpperCase()) {
+                    clearHighlights();
+                    selectedSquare = { r, c };
+                    
+                    const index = r * 8 + c;
+                    boardEl.children[index].classList.add('selected');
+                    
+                    possibleMoves = getValidMoves(board, r, c);
+                    highlightMoves();
+                } else {
+                    clearHighlights();
+                    selectedSquare = null;
+                    possibleMoves = [];
+                }
+            }
+        }
+
+        function highlightMoves() {
+            possibleMoves.forEach(m => {
+                const idx = m.toR * 8 + m.toC;
+                const sq = boardEl.children[idx];
+                if (board[m.toR][m.toC] === '') {
+                    sq.classList.add('suggested');
+                } else {
+                    sq.classList.add('suggested-capture');
+                }
+            });
+        }
+
+        function clearHighlights() {
+            for (let child of boardEl.children) {
+                child.classList.remove('selected', 'suggested', 'suggested-capture');
+            }
+        }
+
+        function executeMove(targetBoard, fromR, fromC, toR, toC) {
+            targetBoard[toR][toC] = targetBoard[fromR][fromC];
+            targetBoard[fromR][fromC] = '';
+        }
+
+        function hasKing(targetBoard, kingChar) {
+            return targetBoard.some(row => row.includes(kingChar));
+        }
+
+        function getValidMoves(targetBoard, r, c) {
+            const piece = targetBoard[r][c];
+            if (!piece) return [];
+            
+            const isWhite = piece === piece.toUpperCase();
+            const moves = [];
+
+            const rookDirs = [[1,0], [-1,0], [0,1], [0,-1]];
+            const bishopDirs = [[1,1], [1,-1], [-1,1], [-1,-1]];
+            const knightMoves = [[2,1], [2,-1], [-2,1], [-2,-1], [1,2], [1,-2], [-1,2], [-1,-2]];
+
+            switch(piece.toLowerCase()) {
+                case 'p': 
+                    const dir = isWhite ? -1 : 1;
+                    if (r + dir >= 0 && r + dir < 8 && targetBoard[r + dir][c] === '') {
+                        moves.push({ fromR: r, fromC: c, toR: r + dir, toC: c });
+                        if ((isWhite && r === 6) || (!isWhite && r === 1)) {
+                            if (targetBoard[r + dir * 2][c] === '') {
+                                moves.push({ fromR: r, fromC: c, toR: r + dir * 2, toC: c });
+                            }
+                        }
+                    }
+                    const captureCols = [c - 1, c + 1];
+                    captureCols.forEach(cc => {
+                        if (cc >= 0 && cc < 8 && r + dir >= 0 && r + dir < 8) {
+                            const target = targetBoard[r + dir][cc];
+                            if (target !== '' && (target === target.toUpperCase()) !== isWhite) {
+                                moves.push({ fromR: r, fromC: c, toR: r + dir, toC: cc });
+                            }
+                        }
+                    });
+                    break;
+
+                case 'n': 
+                    knightMoves.forEach(m => {
+                        const nr = r + m[0], nc = c + m[1];
+                        if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                            const target = targetBoard[nr][nc];
+                            if (target === '' || (target === target.toUpperCase()) !== isWhite) {
+                                moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+                            }
+                        }
+                    });
+                    break;
+
+                case 'b': 
+                    slideMoves(moves, targetBoard, r, c, bishopDirs, isWhite);
+                    break;
+
+                case 'r': 
+                    slideMoves(moves, targetBoard, r, c, rookDirs, isWhite);
+                    break;
+
+                case 'q': 
+                    slideMoves(moves, targetBoard, r, c, [...rookDirs, ...bishopDirs], isWhite);
+                    break;
+
+                case 'k': 
+                    [...rookDirs, ...bishopDirs].forEach(d => {
+                        const nr = r + d[0], nc = c + d[1];
+                        if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                            const target = targetBoard[nr][nc];
+                            if (target === '' || (target === target.toUpperCase()) !== isWhite) {
+                                moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+                            }
+                        }
+                    });
+                    break;
+            }
+            return moves;
+        }
+
+        function slideMoves(moves, targetBoard, r, c, dirs, isWhite) {
+            dirs.forEach(d => {
+                let nr = r + d[0], nc = c + d[1];
+                while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                    const target = targetBoard[nr][nc];
+                    if (target === '') {
+                        moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+                    } else {
+                        if ((target === target.toUpperCase()) !== isWhite) {
+                            moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+                        }
+                        break; 
+                    }
+                    nr += d[0];
+                    nc += d[1];
+                }
+            });
+        }
+
+        function getAllValidMoves(targetBoard, color) {
+            let moves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = targetBoard[r][c];
+                    if (piece !== '') {
+                        const isWhite = piece === piece.toUpperCase();
+                        if ((color === 'W' && isWhite) || (color === 'B' && !isWhite)) {
+                            moves = moves.concat(getValidMoves(targetBoard, r, c));
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        // --- ENGINE AI MINIMAX ---
+        function makeAIMove() {
+            if (isGameOver) return;
+
+            let bestMove = minimaxRoot(2, board, true);
+
+            if (bestMove) {
+                logMove("Đen", bestMove.fromR, bestMove.fromC, bestMove.toR, bestMove.toC);
+                executeMove(board, bestMove.fromR, bestMove.fromC, bestMove.toR, bestMove.toC);
+                
+                if (board[bestMove.toR][bestMove.toC] === 'p' && bestMove.toR === 7) {
+                    board[bestMove.toR][bestMove.toC] = 'q';
+                }
+
+                drawBoard();
+
+                if (!hasKing(board, 'K')) {
+                    endGame("MÁY ĐÃ CHIẾN THẮNG! HÃY THỬ LẠI.");
+                    return;
+                }
+
+                currentTurn = 'W';
+                turnTxt.innerText = "BẠN (Quân Trắng)";
+                turnTxt.style.color = "#a3ff7d";
+            } else {
+                endGame("HÒA CỜ (MÁY BỊ BẤT ĐỘNG)");
+            }
+        }
+
+        function minimaxRoot(depth, currentBoard, isMaximizing) {
+            let newMoves = getAllValidMoves(currentBoard, 'B');
+            let bestMove = null;
+            let bestValue = -9999;
+
+            newMoves.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < newMoves.length; i++) {
+                let move = newMoves[i];
+                let backupBoard = copyBoard(currentBoard);
+                executeMove(backupBoard, move.fromR, move.fromC, move.toR, move.toC);
+
+                let value = minimax(depth - 1, backupBoard, -10000, 10000, !isMaximizing);
+                
+                if (value >= bestValue) {
+                    bestValue = value;
+                    bestMove = move;
+                }
+            }
+            return bestMove;
+        }
+
+        function minimax(depth, currentBoard, alpha, beta, isMaximizing) {
+            if (depth === 0) {
+                return -evaluateBoard(currentBoard);
+            }
+
+            let newMoves = isMaximizing ? getAllValidMoves(currentBoard, 'B') : getAllValidMoves(currentBoard, 'W');
+
+            if (isMaximizing) {
+                let value = -9999;
+                for (let i = 0; i < newMoves.length; i++) {
+                    let backupBoard = copyBoard(currentBoard);
+                    executeMove(backupBoard, newMoves[i].fromR, newMoves[i].fromC, newMoves[i].toR, newMoves[i].toC);
+                    value = Math.max(value, minimax(depth - 1, backupBoard, alpha, beta, false));
+                    alpha = Math.max(alpha, value);
+                    if (beta <= alpha) break; 
+                }
+                return value;
+            } else {
+                let value = 9999;
+                for (let i = 0; i < newMoves.length; i++) {
+                    let backupBoard = copyBoard(currentBoard);
+                    executeMove(backupBoard, newMoves[i].fromR, newMoves[i].fromC, newMoves[i].toR, newMoves[i].toC);
+                    value = Math.min(value, minimax(depth - 1, backupBoard, alpha, beta, true));
+                    beta = Math.min(beta, value);
+                    if (beta <= alpha) break; 
+                }
+                return value;
+            }
+        }
+
+        function evaluateBoard(targetBoard) {
+            let totalEvaluation = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    totalEvaluation += getPieceValue(targetBoard[r][c], r, c);
+                }
+            }
+            return totalEvaluation;
+        }
+
+        function getPieceValue(piece, r, c) {
+            if (!piece) return 0;
+
+            function getAbsoluteValue(p, isWhite, r, c) {
+                let row = isWhite ? r : 7 - r; 
+                if (p === 'p') return 10 + pawnEval[row][c];
+                if (p === 'r') return 50 + rookEval[row][c];
+                if (p === 'n') return 30 + knightEval[row][c];
+                if (p === 'b') return 30 + bishopEval[row][c];
+                if (p === 'q') return 90 + evalQueen[row][c];
+                if (p === 'k') return 900 + kingEval[row][c];
+                return 0;
+            }
+
+            const isWhite = piece === piece.toUpperCase();
+            const val = getAbsoluteValue(piece.toLowerCase(), isWhite, r, c);
+            return isWhite ? val : -val;
+        }
+
+        function copyBoard(original) {
+            return original.map(row => [...row]);
+        }
+
+        function endGame(msg) {
+            isGameOver = true;
+            statusTxt.innerText = msg;
+            turnTxt.innerText = "KẾT THÚC THI ĐẤU";
+            turnTxt.style.color = "#aaa";
+            alert(msg);
+        }
+
+        function resetGame() {
+            board = [
+                ['r','n','b','q','k','b','n','r'],
+                ['p','p','p','p','p','p','p','p'],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['P','P','P','P','P','P','P','P'],
+                ['R','N','B','Q','K','B','N','R']
+            ];
+            selectedSquare = null;
+            possibleMoves = [];
+            currentTurn = 'W';
+            isGameOver = false;
+            
+            turnTxt.innerText = "BẠN (Quân Trắng)";
+            turnTxt.style.color = "#a3ff7d";
+            statusTxt.innerText = "Đang thi đấu...";
+            historyEl.innerText = "Khởi tạo trận đấu...";
+            
+            drawBoard();
+        }
+
+        // Chạy khởi tạo
+        initCoordinates();
+        drawBoard();
+    </script>
+</body>
+</html>

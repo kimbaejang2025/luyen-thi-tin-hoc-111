@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đại Chiến Săn Thú - Cải Tiến 10 Cảnh</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 900px;
+            height: 550px;
+            background: linear-gradient(to bottom, #4fc3f7 0%, #b3e5fc 65%, #ffb74d 65%, #ced6e0 100%);
+            border: 4px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            cursor: crosshair;
+            transition: background 0.5s;
+        }
+
+        /* Thanh thông tin UI */
+        #ui-layer {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 25px;
+            box-sizing: border-box;
+            color: #222;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .ui-box span {
+            color: #d32f2f;
+            font-size: 22px;
+        }
+
+        #stage-banner {
+            position: absolute;
+            top: 60px;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 9;
+        }
+
+        /* Bụi cỏ phía dưới */
+        #grass-clip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background-color: #4abc54;
+            border-top: 6px solid #2e7d32;
+            z-index: 6;
+        }
+
+        /* ĐỐI TƯỢNG CON VẬT TỔNG HỢP (CSS-ART & EMOJI) */
+        .target-animal {
+            position: absolute;
+            z-index: 3;
+            cursor: crosshair;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-origin: center;
+        }
+
+        /* Phần hiển thị hình ảnh động vật bằng Emoji cỡ lớn tương ứng kích thước */
+        .animal-sprite {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        /* Hiệu ứng đập cánh / lắc lư hoạt hình */
+        .anim-flying {
+            animation: animalFlap 0.2s infinite alternate ease-in-out;
+        }
+        @keyframes animalFlap {
+            0% { transform: translateY(-4px) rotate(-2deg); }
+            100% { transform: translateY(4px) rotate(4deg); }
+        }
+
+        /* Khi mục tiêu bị bắn trúng */
+        .target-animal.shot .animal-sprite {
+            transform: scaleY(-1) rotate(180deg);
+            filter: grayscale(1) sepia(1) hue-rotate(-50deg);
+        }
+
+        /* Quay đầu khi di chuyển sang trái */
+        .face-left {
+            transform: scaleX(-1);
+        }
+
+        /* MÀN HÌNH CHỨC NĂNG */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 20;
+        }
+
+        .screen h1 {
+            font-size: 42px;
+            color: #ffb300;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        button {
+            padding: 12px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background-color: #f44336;
+        }
+
+        .flash-red {
+            animation: flash 0.1s ease-out;
+        }
+        @keyframes flash {
+            0% { background-color: rgba(255, 0, 0, 0.3); }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="flash-effect" style="position:absolute; width:100%; height:100%; z-index:15; pointer-events:none;"></div>
+
+        <!-- UI phía trên -->
+        <div id="ui-layer">
+            <div class="ui-box">ĐẠN: <span id="txt-ammo">3</span></div>
+            <div class="ui-box">CẢNH: <span id="txt-stage">1/10</span></div>
+            <div class="ui-box">MỤC TIÊU: <span id="txt-kills">0</span>/5</div>
+            <div class="ui-box">ĐIỂM: <span id="txt-score">0</span></div>
+        </div>
+
+        <div id="stage-banner">CẢNH 1: SĂN CHIM SẺ 🐦</div>
+
+        <div id="grass-clip"></div>
+
+        <!-- MÀN HÌNH BẮT ĐẦU -->
+        <div id="start-screen" class="screen">
+            <h1>ANIMAL HUNTER EVOLUTION</h1>
+            <p style="color: #bbb; margin-bottom: 25px; text-align: center; max-width: 500px;">
+                Hạ gục đủ 5 con vật mỗi cảnh để tiến hóa sang cảnh tiếp theo. Vật tế sẽ to dần nhưng tốc độ sẽ nhanh chóng mặt!
+            </p>
+            <button onclick="startGame()">Bắt đầu cuộc săn</button>
+        </div>
+
+        <!-- MÀN HÌNH QUA CẢNH (CHÚC MỪNG) -->
+        <div id="next-stage-screen" class="screen" style="display: none;">
+            <h1 style="color: #4caf50;">VƯỢT CẢNH THÀNH CÔNG!</h1>
+            <p id="next-stage-desc" style="margin-bottom: 25px;"></p>
+            <button onclick="startNextStage()">Tiến vào cảnh tiếp theo</button>
+        </div>
+
+        <!-- MÀN HÌNH CHIẾN THẮNG CUỐI CÙNG -->
+        <div id="victory-screen" class="screen" style="display: none;">
+            <h1 style="color: #ffd700;">🏆 ĐẠI THỢ SĂN HUYỀN THOẠI 🏆</h1>
+            <p>Bạn đã chinh phục toàn bộ 10 cảnh chơi tuyệt đỉnh!</p>
+            <p>Tổng điểm tích lũy: <span id="victory-score" style="color: #ffb300; font-weight: bold; font-size: 26px;">0</span></p>
+            <button onclick="showStartScreen()">Quay lại Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const flashEffect = document.getElementById('flash-effect');
+        const scoreTxt = document.getElementById('txt-score');
+        const ammoTxt = document.getElementById('txt-ammo');
+        const stageTxt = document.getElementById('txt-stage');
+        const killsTxt = document.getElementById('txt-kills');
+        const stageBanner = document.getElementById('stage-banner');
+        
+        const startScreen = document.getElementById('start-screen');
+        const nextStageScreen = document.getElementById('next-stage-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+
+        // Cấu hình dữ liệu 10 cảnh chơi (Sắp xếp từ bé đến lớn)
+        const STAGES = [
+            { id: 1,  name: "Chim Sẻ",   emoji: "🐦", size: 35,  speed: 2.5, bg: "linear-gradient(to bottom, #4fc3f7, #b3e5fc, #ffb74d, #ced6e0)" },
+            { id: 2,  name: "Vịt Trời",  emoji: "🦆", size: 48,  speed: 3.5, bg: "linear-gradient(to bottom, #29b6f6, #81d4fa, #ffa726, #b2dfdb)" },
+            { id: 3,  name: "Gà Trống",  emoji: "🐓", size: 55,  speed: 4.2, bg: "linear-gradient(to bottom, #03a9f4, #4fc3f7, #ff9800, #80cbc4)" },
+            { id: 4,  name: "Bồ Câu",    emoji: "🕊️", size: 62,  speed: 5.0, bg: "linear-gradient(to bottom, #039be5, #29b6f6, #fb8c00, #4db6ac)" },
+            { id: 5,  name: "Dê Núi",    emoji: "🐐", size: 75,  speed: 5.8, bg: "linear-gradient(to bottom, #0288d1, #03a9f4, #f57c00, #26a69a)" },
+            { id: 6,  name: "Cừu Bông",  emoji: "🐑", size: 85,  speed: 6.5, bg: "linear-gradient(to bottom, #0277bd, #0288d1, #ef6c00, #009688)" },
+            { id: 7,  name: "Ngựa Ô",    emoji: "🐎", size: 100, speed: 7.3, bg: "linear-gradient(to bottom, #01579b, #0277bd, #e65100, #00897b)" },
+            { id: 8,  name: "Đại Bàng",  emoji: "🦅", size: 115, speed: 8.2, bg: "linear-gradient(to bottom, #1a237e, #283593, #d84315, #00796b)" },
+            { id: 9,  name: "Khủng Long",emoji: "Rex 🦖", size: 140, speed: 9.0, bg: "linear-gradient(to bottom, #283593, #3f51b5, #bf360c, #004d40)" },
+            { id: 10, name: "Voi Bản Đôn",emoji: "🐘", size: 180, speed: 10.0, bg: "linear-gradient(to bottom, #311b92, #4527a0, #880e4f, #212121)" }
+        ];
+
+        let score = 0;
+        let ammo = 3;
+        let currentStageIndex = 0;
+        let stageKills = 0;
+        const requiredKills = 5; // Yêu cầu 5 con hạ gục để qua màn
+        let isGameOver = true;
+
+        let animals = [];
+        let gameInterval;
+        let spawnTimer = 0;
+
+        function showStartScreen() {
+            victoryScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        }
+
+        // BẮT ĐẦU TRÒ CHƠI TOÀN DIỆN
+        function startGame() {
+            score = 0;
+            currentStageIndex = 0;
+            scoreTxt.innerText = score;
+            startScreen.style.display = 'none';
+            setupStage();
+        }
+
+        // THIẾT LẬP CẢNH CHƠI HIỆN TẠI
+        function setupStage() {
+            stageKills = 0;
+            ammo = 3;
+            isGameOver = false;
+            spawnTimer = 0;
+
+            // Xóa sạch động vật cũ
+            animals.forEach(a => a.el.remove());
+            animals = [];
+
+            let stageData = STAGES[currentStageIndex];
+
+            // Cập nhật giao diện & Background tương ứng cảnh
+            stageTxt.innerText = `${stageData.id}/10`;
+            killsTxt.innerText = stageKills;
+            ammoTxt.innerText = ammo;
+            stageBanner.innerText = `CẢNH ${stageData.id}: SĂN ${stageData.name.toUpperCase()} ${stageData.emoji.substring(0,2)}`;
+            container.style.background = stageData.bg;
+
+            // Chạy vòng lặp game
+            clearInterval(gameInterval);
+            gameInterval = setInterval(updateGame, 1000 / 60);
+
+            // Sinh con vật đầu tiên
+            spawnAnimal();
+        }
+
+        // SINH CON VẬT MỚI THEO THÔNG SỐ CỦA CẢNH
+        function spawnAnimal() {
+            if (isGameOver || stageKills >= requiredKills) return;
+
+            let stageData = STAGES[currentStageIndex];
+            const el = document.createElement('div');
+            el.classList.add('target-animal');
+            el.style.width = stageData.size + 'px';
+            el.style.height = stageData.size + 'px';
+
+            // Tạo khối sprite hiển thị
+            el.innerHTML = `
+                <div class="animal-sprite anim-flying" style="font-size: ${stageData.size * 0.85}px;">
+                    ${stageData.emoji}
+                </div>
+            `;
+
+            // Xuất phát ngẫu nhiên từ dưới bụi cỏ
+            let startX = Math.random() * (800 - 100) + 100;
+            let startY = 460;
+
+            el.style.left = startX + 'px';
+            el.style.top = startY + 'px';
+
+            // Vector vận tốc chéo dựa trên độ khó tốc độ của cảnh chơi hiện tại
+            let vx = (Math.random() - 0.5) * (stageData.speed * 1.6);
+            let vy = -(Math.random() * (stageData.speed * 0.6) + stageData.speed * 0.8);
+
+            // Quay đầu vật thể nếu bay/chạy sang trái
+            if (vx < 0) {
+                el.classList.add('face-left');
+            }
+
+            container.appendChild(el);
+
+            animals.push({
+                el: el,
+                x: startX,
+                y: startY,
+                vx: vx,
+                vy: vy,
+                isShot: false,
+                size: stageData.size
+            });
+
+            // Mỗi khi mục tiêu mới xuất hiện, hồi lại 3 viên đạn
+            ammo = 3;
+            ammoTxt.innerText = ammo;
+        }
+
+        // VÒNG LẶP LOGIC GAME (LOOP)
+        function updateGame() {
+            if (isGameOver) return;
+
+            spawnTimer++;
+            // Tự động sinh mục tiêu mới nếu trên màn hình trống trải
+            if (spawnTimer >= 120) {
+                if (animals.length < 2 && stageKills < requiredKills) {
+                    spawnAnimal();
+                }
+                spawnTimer = 0;
+            }
+
+            // Quản lý chuyển động của các loài thú
+            for (let i = animals.length - 1; i >= 0; i--) {
+                let a = animals[i];
+
+                if (a.isShot) {
+                    // Trạng thái trúng đạn: Rơi thẳng đứng
+                    a.vy += 0.45; 
+                    a.y += a.vy;
+                    a.el.style.top = a.y + 'px';
+
+                    // Rơi hẳn xuống đáy
+                    if (a.y > 480) {
+                        a.el.remove();
+                        animals.splice(i, 1);
+                        
+                        // Kiểm tra xem đã đủ điều kiện qua màn chưa
+                        if (stageKills >= requiredKills && animals.length === 0) {
+                            handleStageClear();
+                        } else {
+                            spawnAnimal();
+                        }
+                    }
+                } else {
+                    // Di chuyển bình thường
+                    a.x += a.vx;
+                    a.y += a.vy;
+
+                    // Đập tường dội ngược lại
+                    if (a.x < 0 || a.x > (900 - a.size)) {
+                        a.vx = -a.vx;
+                        a.el.classList.toggle('face-left');
+                    }
+
+                    a.el.style.left = a.x + 'px';
+                    a.el.style.top = a.y + 'px';
+
+                    // Trốn thoát lên trời
+                    if (a.y < -a.size) {
+                        a.el.remove();
+                        animals.splice(i, 1);
+                        
+                        // Chạy thoát thì sinh con khác cho đến khi bắn đủ chỉ tiêu
+                        spawnAnimal();
+                    }
+                }
+            }
+        }
+
+        // XỬ LÝ SỰ KIỆN NỔ SÚNG
+        container.addEventListener('mousedown', function(e) {
+            if (isGameOver || ammo <= 0) return;
+
+            ammo--;
+            ammoTxt.innerText = ammo;
+
+            // Hiệu ứng giật màn hình chớp đỏ
+            flashEffect.classList.remove('flash-red');
+            void flashEffect.offsetWidth; 
+            flashEffect.classList.add('flash-red');
+
+            let rect = container.getBoundingClientRect();
+            let clickX = e.clientX - rect.left;
+            let clickY = e.clientY - rect.top;
+
+            // Kiểm tra va chạm hồng tâm điểm click với mảng thú
+            for (let a of animals) {
+                if (!a.isShot) {
+                    let radius = a.size / 2;
+                    let centerX = a.x + radius;
+                    let centerY = a.y + radius;
+                    
+                    let distance = Math.hypot(clickX - centerX, clickY - centerY);
+
+                    // Nếu click nằm trong bán kính bo tròn của con thú
+                    if (distance < (radius + 5)) {
+                        a.isShot = true;
+                        a.vy = -3; // Nảy lên nhẹ rồi rơi xuống
+                        a.el.classList.remove('face-left');
+                        a.el.classList.add('shot');
+                        
+                        stageKills++;
+                        killsTxt.innerText = stageKills;
+
+                        // Điểm số cộng dựa theo độ khó của cảnh chơi
+                        score += STAGES[currentStageIndex].id * 100;
+                        scoreTxt.innerText = score;
+                        break;
+                    }
+                }
+            }
+        });
+
+        // XỬ LÝ KHI ĐẠT CHỈ TIÊU QUA CẢNH
+        function handleStageClear() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+
+            if (currentStageIndex < STAGES.length - 1) {
+                // Hiện bảng thông báo chuyển tiếp cảnh
+                let nextStageData = STAGES[currentStageIndex + 1];
+                document.getElementById('next-stage-desc').innerText = `Chuẩn bị bước sang Cảnh ${nextStageData.id}: Săn ${nextStageData.name} (${nextStageData.emoji})`;
+                nextStageScreen.style.display = 'flex';
+            } else {
+                // Đã chiến thắng cảnh cuối cùng (Cảnh 10)
+                document.getElementById('victory-score').innerText = score;
+                victoryScreen.style.display = 'flex';
+            }
+        }
+
+        // KÍCH HOẠT CHUYỂN TIẾP MÀN
+        function startNextStage() {
+            currentStageIndex++;
+            nextStageScreen.style.display = 'none';
+            setupStage();
+        }
+
+        // Hiển thị màn hình chờ ban đầu
+        showStartScreen();
+    </script>
+</body>
+</html>

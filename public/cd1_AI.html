@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Ôn tập THPT: AI & Mạng máy tính</title>
+    <style>
+        :root {
+            --primary: #4f46e5; /* Indigo */
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --border: #e2e8f0;
+            --correct: #16a34a;
+            --correct-bg: #dcfce7;
+            --wrong: #ef4444;
+            --wrong-bg: #fee2e2;
+            --explain-bg: #fffbeb;
+            --explain-text: #b45309;
+            --example-bg: #eff6ff;
+            --example-text: #1d4ed8;
+            --example-border: #bfdbfe;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+        header {
+            text-align: center; padding: 40px 20px;
+            background: linear-gradient(135deg, #312e81, #4f46e5); color: white;
+            border-radius: 0 0 20px 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        h2 { font-size: 1.6rem; color: var(--primary); margin: 40px 0 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px;}
+        h3 { font-size: 1.25rem; margin-bottom: 15px; color: #0f172a; margin-top: 30px;}
+        h4 { font-size: 1.15rem; color: var(--primary-hover); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
+
+        /* Tab System */
+        .tabs-nav {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 12px 24px; font-size: 1.1rem; font-weight: bold; border: none;
+            border-radius: 30px; cursor: pointer; background: white; color: var(--text-muted);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.3s ease; border: 2px solid transparent;
+        }
+        .tab-btn:hover { background: #f1f5f9; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Theory Cards */
+        .theory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .theory-card { background: var(--card-bg); padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); transition: transform 0.2s;}
+        .theory-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .theory-card.full-width { grid-column: 1 / -1; }
+        .theory-card ul { margin-left: 20px; }
+        .theory-card li { margin-bottom: 8px; text-align: justify; }
+        
+        /* Table */
+        .theory-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95rem; }
+        .theory-table th, .theory-table td { padding: 12px; border: 1px solid var(--border); text-align: left; }
+        .theory-table th { background-color: #f1f5f9; }
+
+        /* Example Box */
+        .example-box {
+            background-color: var(--example-bg); color: var(--example-text); padding: 12px 15px;
+            border-left: 4px solid var(--primary); border-radius: 0 8px 8px 0;
+            margin: 15px 0; font-size: 0.95rem; border: 1px solid var(--example-border); border-left-width: 4px;
+        }
+
+        /* Quiz UI */
+        .question-block { background: var(--card-bg); padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .question-text { font-weight: 600; margin-bottom: 15px; font-size: 1.1rem; }
+        
+        .options-grid { display: grid; gap: 10px; }
+        .option-item { padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; gap: 10px; }
+        .option-item:hover:not(.disabled) { border-color: var(--primary); background-color: #e0e7ff; }
+        .option-item.selected { border-color: var(--primary); background-color: #e0e7ff; font-weight: 600; }
+
+        .scenario-context { background: #f8fafc; padding: 15px; border-left: 4px solid var(--primary); border-radius: 0 8px 8px 0; margin-bottom: 20px; font-style: italic; font-weight: 500;}
+        .tf-statement { padding: 15px 0; border-bottom: 1px dashed var(--border); }
+        .tf-statement:last-child { border-bottom: none; }
+        .tf-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+        .tf-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .tf-btn { padding: 8px 16px; border: 1px solid var(--border); background: white; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .tf-btn.selected-true { background: var(--primary); color: white; border-color: var(--primary); }
+        .tf-btn.selected-false { background: #64748b; color: white; border-color: #64748b; }
+
+        /* Validation */
+        .disabled { pointer-events: none; }
+        .option-item.correct { background-color: var(--correct-bg); border-color: var(--correct); color: #166534; }
+        .option-item.wrong { background-color: var(--wrong-bg); border-color: var(--wrong); color: #991b1b; }
+        .option-item.missed { border-style: dashed; border-color: var(--correct); background-color: var(--correct-bg); }
+        .tf-btn.correct { background-color: var(--correct); color: white; border-color: var(--correct); }
+        .tf-btn.wrong { background-color: var(--wrong); color: white; border-color: var(--wrong); }
+        .tf-btn.missed { border: 2px dashed var(--correct); color: var(--correct); background: transparent; }
+
+        /* Explanations */
+        .explanation { margin-top: 15px; padding: 12px 15px; background-color: var(--explain-bg); border-radius: 8px; color: var(--explain-text); font-size: 0.95rem; display: none; border-left: 4px solid #f59e0b; }
+        
+        /* Bottom Bar */
+        .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 100; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-submit { background: var(--primary); color: white; }
+        .btn-reset { background: #e2e8f0; color: #475569; }
+        .score-display { font-size: 1.2rem; font-weight: bold; color: var(--primary); display: none; background: #e0e7ff; padding: 10px 20px; border-radius: 8px;}
+
+        @media (max-width: 768px) {
+            .tf-top { flex-direction: column; } .tf-actions { width: 100%; justify-content: flex-end; margin-top: 10px; }
+            .bottom-bar { flex-wrap: wrap; } .score-display { width: 100%; text-align: center; order: -1; }
+            .theory-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Hệ Thống Ôn Tập THPT</h1>
+        <p>Tin học 12 - Tích hợp đầy đủ Lý thuyết & Bài tập</p>
+    </header>
+
+    <div class="container">
+        <!-- Tab Navigation -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('topic1')">Chủ đề 1: Trí tuệ nhân tạo (AI)</button>
+            <button class="tab-btn" onclick="switchTab('topic2')">Chủ đề 2: Kết nối mạng</button>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 1: TRÍ TUỆ NHÂN TẠO                        -->
+        <!-- ============================================== -->
+        <div id="topic1" class="tab-content active">
+            <section class="theory">
+                <h2>📚 Kiến thức cần nhớ: Trí tuệ nhân tạo (AI)</h2>
+                <div class="theory-grid">
+                    <div class="theory-card">
+                        <h4>🤖 1. Khái niệm AI</h4>
+                        <p>AI là các hệ thống được xây dựng và lập trình bởi con người để máy tính có khả năng thực hiện các hành vi thông minh tương tự như con người, bao gồm đọc văn bản, hiểu tiếng nói, nhận biết môi trường xung quanh, học và ra quyết định.</p>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> Siri/Google Assistant hiểu giọng nói của bạn; ChatGPT có thể giải toán và làm thơ thay vì chỉ chạy các lệnh lập trình sẵn.</div>
+                    </div>
+                    
+                    <div class="theory-card">
+                        <h4>🧠 2. Đặc trưng cơ bản</h4>
+                        <ul>
+                            <li><strong>Khả năng học:</strong> Nắm bắt thông tin từ dữ liệu và điều chỉnh hành vi.</li>
+                            <li><strong>Khả năng suy luận:</strong> Vận dụng logic và tri thức để ra quyết định.</li>
+                            <li><strong>Khả năng nhận thức:</strong> Cảm nhận môi trường qua cảm biến/dữ liệu đầu vào.</li>
+                            <li><strong>Khả năng hiểu ngôn ngữ:</strong> Đọc, hiểu, diễn giải và tạo văn bản như người.</li>
+                            <li><strong>Khả năng giải quyết vấn đề:</strong> Áp dụng các khả năng trên để giải quyết vấn đề.</li>
+                        </ul>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> Xe Tesla tự lái dùng Camera để <strong>Nhận thức</strong> chướng ngại vật, sau đó <strong>Suy luận</strong> và <strong>Giải quyết</strong> bằng cách tự động đạp phanh.</div>
+                    </div>
+
+                    <div class="theory-card full-width">
+                        <h4>🗂️ 3. Phân loại AI</h4>
+                        <ul>
+                            <li><strong>AI hẹp (ANI):</strong> Thực hiện một/một số nhiệm vụ cụ thể. Hầu hết AI hiện nay thuộc loại này.</li>
+                            <li><strong>AI tổng quát (AGI):</strong> Tự học từ dữ liệu mới, tự chuyển đổi nhiệm vụ, áp dụng tri thức xuyên lĩnh vực. Là mục tiêu dài hạn.</li>
+                        </ul>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> AI đánh cờ vua cực giỏi nhưng không biết nấu ăn -> Đây là <strong>AI hẹp</strong>. Còn robot Doraemon tự biết làm mọi thứ như con người -> <strong>AI tổng quát</strong>.</div>
+                    </div>
+
+                    <div class="theory-card full-width">
+                        <h4>💡 4. Ứng dụng phổ biến</h4>
+                        <ul>
+                            <li>Tìm kiếm bằng giọng nói trên trình duyệt.</li>
+                            <li>Nhận dạng khuôn mặt để xác thực người dùng.</li>
+                            <li>Hỗ trợ chẩn đoán bệnh và chăm sóc sức khoẻ.</li>
+                            <li>Nhận dạng chữ viết tay trên thiết bị thông minh chuyển thành văn bản.</li>
+                            <li>Điều khiển tự động trong nông nghiệp (robot phun thuốc, tưới nước).</li>
+                            <li>Quản lí chuỗi cung ứng, hậu cần (tối ưu sản xuất, lưu kho, vận chuyển).</li>
+                            <li>Robot tự động trong sản xuất, dịch vụ. Trợ lí ảo di động. Giảng dạy ngôn ngữ (đánh giá kỹ năng).</li>
+                        </ul>
+                    </div>
+
+                    <div class="theory-card full-width">
+                        <h4>🚀 5. AI trong KHCN và đời sống</h4>
+                        <ul>
+                            <li><strong>Y tế:</strong> Hệ thống chẩn đoán phân tích X-quang, CT, MRI phát hiện bất thường. Robot hỗ trợ phẫu thuật, quản lí bệnh nhân.</li>
+                            <li><strong>Tài chính:</strong> Phân tích tài chính, dự báo thị trường, tự động giao dịch, quản lí rủi ro.</li>
+                            <li><strong>Giao thông:</strong> Điều khiển đèn giao thông thông minh, dự báo kẹt xe, phát triển xe tự lái.</li>
+                            <li><strong>Lập trình:</strong> Tự động tạo mã nguồn, phát hiện lỗi phần mềm.</li>
+                        </ul>
+                    </div>
+
+                    <div class="theory-card full-width">
+                        <h4>⚠️ 6. Cảnh báo về AI trong tương lai</h4>
+                        <ul>
+                            <li><strong>Đạo đức:</strong> Phụ thuộc dữ liệu huấn luyện, nếu dữ liệu thiên vị/kì thị sẽ ra quyết định phi đạo đức.</li>
+                            <li><strong>An ninh mạng:</strong> AI bị dùng tạo ra tấn công mạng thông minh, khó phát hiện (Mã độc, lừa đảo).</li>
+                            <li><strong>Quyền riêng tư:</strong> Thu thập, tiết lộ thông tin cá nhân sai mục đích.</li>
+                            <li><strong>Việc làm:</strong> Thay thế con người ở các việc lặp lại, đơn giản nhưng cũng tạo ra việc làm mới.</li>
+                        </ul>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> Kẻ gian dùng công nghệ Deepfake (AI ghép mặt, nhái giọng) để lừa đảo qua Video Call là một rủi ro lớn về đạo đức và an ninh mạng.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="quiz">
+                <h2>🎯 Bài tập tương tác: Trí tuệ nhân tạo</h2>
+                <div id="topic1-mcq"></div>
+                <div id="topic1-tf"></div>
+            </section>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 2: KẾT NỐI MẠNG                            -->
+        <!-- ============================================== -->
+        <div id="topic2" class="tab-content">
+            <section class="theory">
+                <h2>📚 Kiến thức cần nhớ: Kết nối mạng</h2>
+                
+                <div class="theory-card full-width" style="margin-bottom: 20px;">
+                    <h4>📖 Bảng thuật ngữ mạng</h4>
+                    <div style="overflow-x:auto;">
+                        <table class="theory-table">
+                            <tr><th>Viết tắt</th><th>Đầy đủ</th><th>Giải nghĩa</th></tr>
+                            <tr><td>Modem</td><td>Modulator and Demodulator</td><td>Bộ điều giải tín hiệu.</td></tr>
+                            <tr><td>LAN / WLAN / WAN</td><td>Local / Wireless / Wide Area Network</td><td>Mạng nội bộ / Mạng nội bộ không dây / Mạng diện rộng.</td></tr>
+                            <tr><td>TCP</td><td>Transmission Control Protocol</td><td>Quản lí thiết lập kết nối, truyền tải tin cậy.</td></tr>
+                            <tr><td>IP</td><td>Internet Protocol</td><td>Quản lí định địa chỉ và định tuyến.</td></tr>
+                            <tr><td>MAC</td><td>Media Access Control</td><td>Địa chỉ vật lí của thiết bị.</td></tr>
+                            <tr><td>HTTP / HTTPS</td><td>HyperText Transfer Protocol (Secure)</td><td>Giao thức truyền siêu văn bản (an toàn) cho Web.</td></tr>
+                            <tr><td>FTP / SMTP / POP3</td><td>File / Simple Mail...</td><td>Truyền tệp / Gửi Mail / Nhận Mail.</td></tr>
+                            <tr><td>SSID</td><td>Service Set Identifier</td><td>Tên mạng Wi-Fi.</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="theory-grid">
+                    <div class="theory-card full-width">
+                        <h4>📡 1.1 Thiết bị mạng thông dụng</h4>
+                        <ul>
+                            <li><strong>Modem:</strong> Biến đổi dữ liệu số thành tín hiệu tương tự để truyền đi (Điều chế) và ngược lại (Giải điều chế).</li>
+                            <li><strong>Access point:</strong> Tạo WLAN. Có chức năng định tuyến không dây, quản lí truy cập.</li>
+                            <li><strong>Switch:</strong> Kết nối thiết bị mạng hình sao làm trung tâm. Mở rộng băng thông.</li>
+                            <li><strong>Router:</strong> Chuyển tiếp dữ liệu giữa các mạng. Kết nối mạng nội bộ ra Internet.</li>
+                        </ul>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> Modem là người phiên dịch ngôn ngữ cáp quang. Router là Bưu điện phân phát thư ra Internet. Switch là ổ cắm điện nhiều lỗ giúp nối các máy tính trong 1 phòng.</div>
+                    </div>
+
+                    <div class="theory-card full-width">
+                        <h4>🌐 1.2 Giao thức mạng và TCP/IP</h4>
+                        <p><strong>Giao thức mạng</strong> là quy tắc định dạng, truyền/nhận dữ liệu để các thiết bị hiểu nhau.</p>
+                        <p><strong>Giao thức TCP/IP:</strong></p>
+                        <ul>
+                            <li><strong>TCP:</strong> Thiết lập/duy trì kết nối, truyền tải tin cậy đúng thứ tự, chia dữ liệu thành gói, kiểm tra lỗi.</li>
+                            <li><strong>IP:</strong> Định địa chỉ (IP duy nhất) và định tuyến gói tin.</li>
+                        </ul>
+                        <p><strong>Ưu điểm TCP/IP:</strong> Tin cậy cao (kiểm soát lỗi), đúng thứ tự, kiểm soát luồng, linh hoạt, dễ mở rộng.</p>
+                        <p><strong>Nhược điểm:</strong> Phản ứng chậm (độ trễ cao), không hiệu quả cho ứng dụng thời gian thực, không hỗ trợ đa phương tiện.</p>
+                        <div class="example-box">👉 <strong>Ví dụ:</strong> Bạn gửi sách 1000 trang qua bưu điện. Sách bị xé thành 1000 mảnh. <strong>IP</strong> là ghi địa chỉ nhà lên mảnh giấy. <strong>TCP</strong> là người kiểm tra xem đủ 1000 mảnh chưa và ghép lại đúng thứ tự trang.</div>
+                    </div>
+
+                    <div class="theory-card">
+                        <h4>💻 2. Chức năng mạng của HĐH</h4>
+                        <ul>
+                            <li>Hệ điều hành có sẵn chức năng: chia sẻ thư mục, chia sẻ máy in qua mạng.</li>
+                            <li>Chức năng <strong>Mobile hotspot</strong>: chia sẻ mạng di động thành điểm phát Wi-Fi.</li>
+                        </ul>
+                    </div>
+
+                    <div class="theory-card">
+                        <h4>📱 3. Kết nối thiết bị thông minh</h4>
+                        <ul>
+                            <li><strong>Cáp USB-C sang LAN:</strong> Nối điện thoại/máy tính. Cần bật <em>Network discovery</em> trong Control Panel để máy tính thấy nhau.</li>
+                            <li><strong>Qua Wi-Fi:</strong> Chọn SSID mạng, nhập mật khẩu. Sau đó có thể dùng app quản lí tệp chia sẻ tài nguyên.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="quiz">
+                <h2>🎯 Bài tập tương tác: Kết nối mạng</h2>
+                <div id="topic2-mcq"></div>
+                <div id="topic2-tf"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Thanh công cụ chấm điểm -->
+    <div class="bottom-bar">
+        <div id="scoreDisplay" class="score-display">Điểm: 0/0</div>
+        <button class="btn btn-reset" onclick="resetQuiz()">Làm lại Chủ đề này</button>
+        <button class="btn btn-submit" onclick="checkResults()">Kiểm tra kết quả</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // DỮ LIỆU CHỦ ĐỀ 1: AI
+        // ==========================================
+        const dataT1 = {
+            mcq: [
+                { q: "Câu 1. Rủi ro nào sau đây có thể xảy ra khi AI trở nên phổ biến trong xã hội?", options: ["A. Tăng cường kết nối con người.", "B. Tạo ra sự phụ thuộc quá mức vào công nghệ.", "C. Cải thiện giao tiếp quốc gia.", "D. Giảm chi phí sản xuất."], ans: 1, exp: "Rủi ro lớn nhất về mặt xã hội là con người ỷ lại, phụ thuộc vào AI để tư duy và làm việc." },
+                { q: "Câu 2. Phương án nào nêu đúng cảnh báo về AI trong tương lai?", options: ["A. Không thể thay thế con người.", "B. Tạo ra vấn đề đạo đức do dữ liệu thiên vị.", "C. Chỉ dùng trong y tế.", "D. Tạo ra người máy không dùng trong giáo dục."], ans: 1, exp: "AI học từ dữ liệu con người, nếu dữ liệu có định kiến/thiên vị, quyết định của AI sẽ vi phạm đạo đức." },
+                { q: "Câu 3. Mối lo ngại về AI liên quan trực tiếp đến quyền riêng tư?", options: ["A. Tự đăng nhập ngân hàng.", "B. Theo dõi, giám sát hoạt động trực tuyến không được phép.", "C. Yêu cầu chia sẻ mọi thông tin.", "D. Xóa thông tin cá nhân."], ans: 1, exp: "Khả năng thu thập và phân tích dữ liệu khổng lồ của AI có thể xâm phạm nghiêm trọng đời tư người dùng." },
+                { q: "Câu 4. Cảnh báo về AI liên quan đến an ninh mạng?", options: ["A. Cải thiện hoàn toàn an ninh.", "B. Không thể áp dụng vào an ninh.", "C. Tạo ra tấn công mạng thông minh, khó phát hiện.", "D. Không bị lợi dụng cho mục đích xấu."], ans: 2, exp: "Hacker dùng AI để tạo mã độc tự tiến hoá hoặc giả mạo Deepfake siêu tinh vi." },
+                { q: "Câu 5. Trong y tế, AI hỗ trợ bác sĩ như thế nào?", options: ["A. Phân tích dữ liệu y khoa hỗ trợ chẩn đoán.", "B. Phát hiện lỗi phần mềm máy tính.", "C. Tối ưu hậu cần bệnh viện.", "D. Cập nhật thông tin sức khoẻ tự động."], ans: 0, exp: "AI quét hàng ngàn ảnh MRI/X-quang để tìm điểm bất thường, giúp bác sĩ chẩn đoán chuẩn xác." },
+                { q: "Câu 6. Ứng dụng quan trọng của AI trong nông nghiệp?", options: ["A. Dự báo thời tiết.", "B. Tối ưu tưới tiêu.", "C. Tạo giống gen mới.", "D. Phát hiện sâu bệnh và dự đoán năng suất."], ans: 3, exp: "Dùng AI nhận diện hình ảnh cánh đồng để bắt sâu bệnh là ứng dụng điển hình (Theo đáp án gốc)." },
+                { q: "Câu 7. Vai trò của AI trong lập trình phần mềm?", options: ["A. Tự động hoá công việc văn phòng.", "B. Tự động tạo mã nguồn, tối ưu hiệu suất phần mềm.", "C. Tự động hoá quy trình kinh doanh.", "D. Hỗ trợ viết nội dung, thiết kế đồ hoạ."], ans: 1, exp: "Các công cụ như GitHub Copilot dùng AI để sinh code, tìm lỗi bug cho lập trình viên." },
+                { q: "Câu 8. Khả năng nhận thức môi trường của AI là gì?", options: ["A. Nhận thức môi trường qua cảm biến và dữ liệu đầu vào.", "B. Hoạt động môi trường ảo.", "C. Tự điều chỉnh hành vi.", "D. Thay thế hoàn toàn cảm giác con người."], ans: 0, exp: "AI dùng camera, microphone, radar (cảm biến) làm 'mắt, tai' để nhận biết thế giới." },
+                { q: "Câu 9. Ứng dụng AI trong giáo dục?", options: ["A. Chỉ hỗ trợ quản lí lớp.", "B. Phân tích dữ liệu học tập để cá nhân hoá giảng dạy.", "C. Tự đánh giá kiểm tra, thay thế giáo viên.", "D. Chỉ dùng dạy trực tuyến."], ans: 1, exp: "AI phân tích điểm yếu/mạnh của từng học sinh để lên lộ trình học tập riêng biệt." },
+                { q: "Câu 10. Vì sao AI được coi là hệ thống thông minh?", options: ["A. Tự thực hiện nhiệm vụ cơ bản.", "B. Chạy theo lệnh cố định.", "C. Có khả năng học hỏi và ra quyết định như con người.", "D. Không cần thu thập thông tin."], ans: 2, exp: "Sự 'thông minh' khác với máy móc ở chỗ: biết tự học hỏi từ kinh nghiệm và tự ra quyết định." },
+                { q: "Câu 11. Điểm nổi bật nhất của AI so với máy tính thông thường?", options: ["A. Chơi game tự động.", "B. Học hỏi và điều chỉnh hành vi dựa trên thông tin mới.", "C. Kết nối Internet tốc độ cao.", "D. Lưu trữ dữ liệu lớn."], ans: 1, exp: "Khả năng Machine Learning (Học máy) giúp AI tiến bộ qua thời gian, thay vì chạy mã cứng nhắc." },
+                { q: "Câu 12. Hệ thống AI có suy luận/học hỏi có thể làm gì?", options: ["A. Sử dụng dữ liệu có sẵn đưa ra quyết định dựa trên logic.", "B. Thực hiện nhiệm vụ cố định.", "C. Làm nhiệm vụ đơn lẻ.", "D. Không thể điều chỉnh hành vi."], ans: 0, exp: "Khả năng suy luận cho phép AI nối kết các dữ kiện logic để tìm ra đáp án." },
+                { q: "Câu 13. AI trong chuỗi cung ứng/hậu cần?", options: ["A. Quản lí thông tin khách hàng.", "B. Tối ưu quá trình lưu trữ, sản xuất, vận chuyển.", "C. Thay thế nhân viên kho.", "D. Cải thiện an ninh cửa hàng."], ans: 1, exp: "AI tính toán quãng đường giao hàng ngắn nhất, dự báo nhu cầu lưu kho." },
+                { q: "Câu 14. AI trong giao thông thông minh?", options: ["A. Giám sát xe tự lái.", "B. Dự đoán giao thông, điều chỉnh lưu lượng xe giảm tắc nghẽn.", "C. Hỗ trợ tài xế qua bản đồ.", "D. Quản lí bãi đậu xe."], ans: 1, exp: "Camera AI tại ngã tư tự phân tích kẹt xe để điều chỉnh thời gian đèn xanh/đỏ." },
+                { q: "Câu 15. Vì sao AI gây ra vấn đề đạo đức?", options: ["A. Tăng công việc con người.", "B. Dữ liệu huấn luyện thiên vị dẫn đến quyết định không công bằng.", "C. Không phân tích được nhiều dữ liệu.", "D. Chỉ chạy lệnh lập trình sẵn."], ans: 1, exp: "Nếu cho AI học dữ liệu phân biệt chủng tộc/giới tính, AI sẽ ra quyết định thiên vị." },
+                { q: "Câu 16. Khác biệt giữa AGI và ANI?", options: ["A. AGI tự học đa lĩnh vực, ANI chỉ làm nhiệm vụ cụ thể.", "B. ANI phức tạp hơn AGI.", "C. AGI chạy lệnh sẵn, ANI tự học.", "D. AGI không làm được nhiệm vụ cụ thể."], ans: 0, exp: "ANI là AI Hẹp (chỉ đánh cờ, hoặc lái xe). AGI là AI Tổng quát (biết làm mọi thứ như người)." }
+            ],
+            tf: [
+                {
+                    context: "Câu 1. Công ti Amazon phát triển thương mại điện tử, điện toán đám mây (AWS), trợ lí ảo Alexa, và lĩnh vực y tế trực tuyến.",
+                    statements: [
+                        { t: "a) Amazon Prime là dịch vụ giao hàng nhanh/miễn phí.", ans: true, exp: "Đúng, đây là mảng cốt lõi của thương mại điện tử Amazon." },
+                        { t: "b) AWS là dịch vụ lưu trữ đám mây có khả năng mở rộng.", ans: true, exp: "Đúng, AWS (Amazon Web Services) là nền tảng cloud số 1." },
+                        { t: "c) Trợ lí Alexa chẩn đoán được ung thư.", ans: false, exp: "Sai, Alexa chỉ hỗ trợ nhà thông minh, không có năng lực chẩn đoán y khoa chuyên sâu." },
+                        { t: "d) Amazon phát triển y tế trực tuyến qua video.", ans: true, exp: "Đúng, đó là định hướng mở rộng hệ sinh thái của họ." }
+                    ]
+                },
+                {
+                    context: "Câu 2. Apple có iPhone, iPad, iCloud và đầu tư sức khoẻ qua Apple Watch.",
+                    statements: [
+                        { t: "a) iCloud cho phép lưu trữ dữ liệu trực tuyến.", ans: true, exp: "Đúng chức năng của Apple iCloud." },
+                        { t: "b) Apple Watch chỉ có thể theo dõi nhịp tim.", ans: false, exp: "Sai ở từ 'chỉ có thể'. Nó còn đo Oxy máu, bước chân, giấc ngủ." },
+                        { t: "c) iPhone là sản phẩm duy nhất của Apple kết nối Internet.", ans: false, exp: "Sai, iPad, Mac, Watch đều nối mạng được." },
+                        { t: "d) Apple Watch cảnh báo nhịp tim bất thường phát hiện sớm bệnh tim.", ans: true, exp: "Đúng, tính năng AFib đã cứu nhiều người." }
+                    ]
+                },
+                {
+                    context: "Câu 3. Microsoft cung cấp Windows, Office, đám mây Azure và đầu tư AI bảo mật.",
+                    statements: [
+                        { t: "a) Office cung cấp Word, Excel, PowerPoint.", ans: true, exp: "Đúng." },
+                        { t: "b) Azure chỉ được dùng để lưu trữ dữ liệu.", ans: false, exp: "Sai, Azure cung cấp máy chủ, huấn luyện AI, host website." },
+                        { t: "c) Windows là hệ điều hành duy nhất của Microsoft.", ans: false, exp: "Sai, còn có Windows Server, Xbox OS." },
+                        { t: "d) Microsoft dùng AI cải thiện bảo mật dữ liệu Azure.", ans: true, exp: "Đúng, họ dùng AI để chống tấn công mạng tự động." }
+                    ]
+                },
+                {
+                    context: "Câu 4. AI cách mạng hoá ngành giao thông (xe tự lái, quản lí giao thông).",
+                    statements: [
+                        { t: "a) Xe tự lái dùng AI phát hiện/tránh chướng ngại vật.", ans: true, exp: "Đúng, thông qua Camera và Radar." },
+                        { t: "b) AI thay thế hoàn toàn con người điều khiển xe.", ans: false, exp: "Sai, công nghệ hiện tại chưa tự động 100% trong mọi tình huống." },
+                        { t: "c) AI cải thiện giao thông bằng cách điều khiển đèn tín hiệu.", ans: true, exp: "Đúng." },
+                        { t: "d) AI hỗ trợ đưa ra cảnh báo cho người lái xe.", ans: true, exp: "Đúng, VD: cảnh báo lệch làn, tiền va chạm." }
+                    ]
+                },
+                {
+                    context: "Câu 5. AI ứng dụng trong y tế (chẩn đoán, theo dõi sức khoẻ).",
+                    statements: [
+                        { t: "a) AI phân tích hình ảnh y khoa hỗ trợ chẩn đoán.", ans: true, exp: "Đúng (ảnh X-quang, MRI)." },
+                        { t: "b) AI thay thế hoàn toàn bác sĩ điều trị.", ans: false, exp: "Sai, AI chỉ là trợ lý, bác sĩ mới là người quyết định cuối cùng." },
+                        { t: "c) AI cá nhân hoá việc điều trị dựa trên dữ liệu bệnh nhân.", ans: true, exp: "Đúng." },
+                        { t: "d) AI phát hiện triệu chứng bệnh tiềm ẩn bị bỏ sót.", ans: true, exp: "Đúng, vì AI không bị 'mỏi mắt' như con người khi nhìn hàng ngàn ảnh." }
+                    ]
+                },
+                {
+                    context: "Câu 6. Tác động của AI đến kinh tế xã hội và quyền riêng tư.",
+                    statements: [
+                        { t: "a) AI thay thế hoàn toàn con người ở mọi lĩnh vực.", ans: false, exp: "Sai, những việc cần thấu cảm, sáng tạo cao thì AI chưa thay thế được." },
+                        { t: "b) AI tăng năng suất nhưng gây lo ngại mất việc làm.", ans: true, exp: "Đúng, đây là thách thức lớn toàn cầu." },
+                        { t: "c) AI không thể thu thập thông tin hoạt động trực tuyến.", ans: false, exp: "Sai, nền tảng AI lấy dữ liệu từ chính lượt click/xem của người dùng." },
+                        { t: "d) AI theo dõi hành vi phục vụ mục đích quảng cáo.", ans: true, exp: "Đúng, cơ chế quảng cáo nhắm mục tiêu (Targeted Ads)." }
+                    ]
+                }
+            ]
+        };
+
+        // ==========================================
+        // DỮ LIỆU CHỦ ĐỀ 2: MẠNG
+        // ==========================================
+        const dataT2 = {
+            mcq: [
+                { q: "Câu 1. Phát biểu nào sai về kết nối qua mạng Wi-Fi?", options: ["A. Cần biết tên mạng và mật khẩu.", "B. Hầu hết laptop, điện thoại có sẵn Card mạng (NIC).", "C. Chỉ cần liên kết điểm truy cập trong phạm vi phủ sóng.", "D. Cần kết nối với Access Point."], ans: 2, exp: "Nằm trong phạm vi sóng là chưa đủ, phải xác thực mật khẩu vào Access Point." },
+                { q: "Câu 2. Giao thức truyền tải tin cậy, theo thứ tự, kiểm tra lỗi?", options: ["A. HTTP", "B. SMTP", "C. TCP", "D. IP"], ans: 2, exp: "TCP kiểm soát quá trình truyền, ráp nối đủ và đúng thứ tự gói tin." },
+                { q: "Câu 3. Phát biểu nào sai về giao thức mạng?", options: ["A. TCP truyền tải tin cậy.", "B. HTTP truyền siêu văn bản Web.", "C. FTP chia sẻ tệp.", "D. SMTP truyền tải tệp tin lớn."], ans: 3, exp: "SMTP là giao thức Email, không dùng truyền tệp tin lớn (FTP mới truyền tệp)." },
+                { q: "Câu 4. Phát biểu nào sai về giao thức IP?", options: ["A. Định danh và truyền gói tin.", "B. Định địa chỉ cho gói tin.", "C. Chỉ có IPv6 được dùng, IPv4 đã bị thay thế.", "D. Hỗ trợ định tuyến mạng."], ans: 2, exp: "Hiện nay IPv4 vẫn đang được sử dụng phổ biến song song cùng IPv6." },
+                { q: "Câu 5. Phát biểu sai về thiết bị Switch?", options: ["A. Kết nối mạng mô hình sao.", "B. Mở rộng băng thông.", "C. Định tuyến gói tin giữa các mạng khác nhau.", "D. Quản lí lưu lượng thiết bị."], ans: 2, exp: "Switch chỉ nối mạng nội bộ (LAN). Việc định tuyến ra mạng khác là của Router." },
+                { q: "Câu 6. Chức năng khác của Access Point?", options: ["A. Tăng truyền tải dữ liệu.", "B. Đổi tín hiệu số sang tương tự.", "C. Biến tín hiệu tương tự thành số.", "D. Hỗ trợ định tuyến mạng không dây, quản lí truy cập."], ans: 3, exp: "Access Point có tính năng quản lí truy cập và định tuyến sóng nội bộ." },
+                { q: "Câu 7. Lợi ích của giao thức TCP/IP?", options: ["A. Bảo mật tuyệt đối.", "B. Cung cấp kết nối đa thiết bị.", "C. Hỗ trợ ứng dụng đa phương tiện tốt nhất.", "D. Đảm bảo gói dữ liệu đúng thứ tự và kiểm lỗi."], ans: 3, exp: "Sự tin cậy và đảm bảo thứ tự là tính năng nổi bật của tầng TCP." },
+                { q: "Câu 8. Giao thức định danh gói tin, gán IP, xác định tuyến đường?", options: ["A. HTTP", "B. SMTP", "C. TCP", "D. IP"], ans: 3, exp: "IP (Internet Protocol) giải quyết vấn đề Địa chỉ IP và Định tuyến." },
+                { q: "Câu 9. Giao thức hoạt động trên thiết bị GỬI trước khi truyền đi?", options: ["A. TCP", "B. HTTP", "C. FTP", "D. ICMP"], ans: 0, exp: "TCP thiết lập kết nối, băm dữ liệu thành gói trước khi chuyển cho IP gửi đi." },
+                { q: "Câu 10. Bật tính năng để các máy tính nhìn thấy nhau trong mạng?", options: ["A. Enable Sharing", "B. Share this folder", "C. Turn on network discovery", "D. Allow access"], ans: 2, exp: "Trong Control Panel, bật Network discovery thì các máy mới nhận diện được nhau." },
+                { q: "Câu 11. Thẻ thiết lập chia sẻ trong cửa sổ Properties?", options: ["A. General", "B. Sharing", "C. Security", "D. Details"], ans: 1, exp: "Nháy chuột phải Folder -> Properties -> Tab Sharing." },
+                { q: "Câu 12. Lựa chọn thiết lập chia sẻ máy in?", options: ["A. Share this printer", "B. Configure printer", "C. Stop sharing", "D. Add printer"], ans: 0, exp: "Trong mục Printer Properties -> Sharing -> Tick 'Share this printer'." },
+                { q: "Câu 13. Phân quyền chia sẻ ổ đĩa để ĐỌC dữ liệu?", options: ["A. Cấp quyền Change", "B. Full control", "C. Cấp quyền Read", "D. Tất cả các quyền"], ans: 2, exp: "Bảo mật nhất: Chỉ cần đọc thì cấp quyền Read (Chỉ xem)." },
+                { q: "Câu 14. Thiết lập điểm phát Wi-Fi (Mobile hotspot) từ điện thoại/PC?", options: ["A. Nhập IP", "B. Cài đặt > Mạng & Internet > Bật Mobile hotspot", "C. Kích hoạt ứng dụng", "D. Mở Bluetooth"], ans: 1, exp: "Đây là đường dẫn chuẩn trong Hệ điều hành (Windows/Android)." },
+                { q: "Câu 15. Nơi bật Network discovery?", options: ["A. Cài đặt thanh tác vụ", "B. Mạng màn hình chính", "C. Wi-Fi thông báo", "D. Cài đặt mạng (Network Settings/Control Panel)"], ans: 3, exp: "Nó nằm sâu trong Cài đặt Mạng nâng cao." },
+                { q: "Câu 16. Dây cáp nối máy tính bàn với Switch?", options: ["A. Cáp quang", "B. Cáp mạng Ethernet", "C. Cáp HDMI", "D. Cáp USB"], ans: 1, exp: "Dây mạng chuẩn đầu RJ45 (Ethernet) dùng kết nối cổng mạng LAN." }
+            ],
+            tf: [
+                {
+                    context: "Câu 1. Thư mục Báo cáo họp, cho phép nhóm GIÁO VIÊN XEM.",
+                    statements: [
+                        { t: "a) Full Control cho Everyone.", ans: false, exp: "Sai vì ai cũng vào phá được dữ liệu." },
+                        { t: "b) Read cho Everyone.", ans: false, exp: "Sai vì học sinh cũng xem được (yêu cầu chỉ Giáo viên)." },
+                        { t: "c) Read cho GIÁO VIÊN.", ans: true, exp: "Đúng (Xem = Read, đúng đối tượng)." },
+                        { t: "d) Modify cho GIÁO VIÊN.", ans: false, exp: "Sai vì Modify cho phép sửa đổi." }
+                    ]
+                },
+                {
+                    context: "Câu 2. Thư mục: SINH VIÊN chỉ ĐỌC, GIẢNG VIÊN được CHỈNH SỬA.",
+                    statements: [
+                        { t: "a) Full Control cho SINH VIÊN.", ans: false, exp: "Sai." },
+                        { t: "b) Read cho GIẢNG VIÊN.", ans: false, exp: "Sai (thiếu quyền sửa)." },
+                        { t: "c) Read cho SINH VIÊN, Modify cho GIẢNG VIÊN.", ans: true, exp: "Đúng, cấu hình bảo mật chuẩn." },
+                        { t: "d) Modify cho SINH VIÊN.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 3. Phòng máy: Máy nối Switch, Router cắm Internet.",
+                    statements: [
+                        { t: "a) Các máy tính chia sẻ dữ liệu qua LAN.", ans: true, exp: "Đúng." },
+                        { t: "b) Router ngắt mạng, các máy vẫn chia sẻ tài liệu được.", ans: true, exp: "Đúng, LAN chạy độc lập không cần Internet." },
+                        { t: "c) Switch tăng hiệu quả kết nối hơn dùng Router.", ans: true, exp: "Đúng, Switch sinh ra để chuyển mạch nội bộ tốc độ cao." },
+                        { t: "d) Thêm Hub sẽ cải thiện tốc độ.", ans: false, exp: "Sai, Hub gây nhiễu, làm chậm mạng." }
+                    ]
+                },
+                {
+                    context: "Câu 4. Văn phòng: Máy PC -> Switch -> Router -> Internet. Wi-Fi từ Router.",
+                    statements: [
+                        { t: "a) Switch phân phối dữ liệu máy tính.", ans: true, exp: "Đúng." },
+                        { t: "b) Bộ Wi-Fi hỏng, PC (cắm Switch) vẫn ra Internet.", ans: true, exp: "Đúng vì nó nối cáp dây độc lập." },
+                        { t: "c) Tất cả máy tính phải qua Wi-Fi ra mạng.", ans: false, exp: "Sai, PC dùng dây cáp." },
+                        { t: "d) Dùng thêm Router thay Switch giúp mạng nhanh hơn.", ans: false, exp: "Sai, mở rộng cổng mạng LAN dùng Switch." }
+                    ]
+                },
+                {
+                    context: "Câu 5. 8 phòng máy (dùng Hub) nối về 1 Switch trung tâm.",
+                    statements: [
+                        { t: "a) Các phòng chia sẻ dữ liệu qua Switch trung tâm.", ans: true, exp: "Đúng, nó nối các mạng nhỏ thành LAN to." },
+                        { t: "b) Hub tiết kiệm chi phí hơn Switch.", ans: true, exp: "Đúng về giá thiết bị phần cứng." },
+                        { t: "c) Cấu trúc hình sao, Switch là trung tâm.", ans: true, exp: "Đúng Topology hình sao." },
+                        { t: "d) Hub hỏng 1 phòng, phòng đó vẫn có mạng.", ans: false, exp: "Sai, đứt nút giao thông là mất mạng." }
+                    ]
+                },
+                {
+                    context: "Câu 6. Thư mục LỚP HỌC: GIÁO VIÊN XEM và CHỈNH SỬA.",
+                    statements: [
+                        { t: "a) Full Control cho GIÁO VIÊN.", ans: false, exp: "Sai, cấp quá nhiều quyền thừa (đổi chủ sở hữu)." },
+                        { t: "b) Modify cho GIÁO VIÊN.", ans: true, exp: "Đúng (Xem + Sửa an toàn)." },
+                        { t: "c) Read cho GIÁO VIÊN.", ans: false, exp: "Sai." },
+                        { t: "d) Write cho GIÁO VIÊN.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 7. Thư mục DỰ ÁN: HỌC SINH NỘP BÀI và SỬA ĐỔI nội dung.",
+                    statements: [
+                        { t: "a) Full Control cho HỌC SINH.", ans: false, exp: "Sai, học sinh phá nát thư mục gốc." },
+                        { t: "b) Write cho HỌC SINH.", ans: true, exp: "Đúng (Theo đáp án của Bộ/tài liệu gốc)." },
+                        { t: "c) Read cho HỌC SINH.", ans: false, exp: "Sai." },
+                        { t: "d) Modify cho HỌC SINH.", ans: false, exp: "Sai (Theo đáp án tài liệu gốc)." }
+                    ]
+                },
+                {
+                    context: "Câu 8. Phòng thực hành dùng Switch.",
+                    statements: [
+                        { t: "a) Bắt buộc có Switch để ra Internet.", ans: false, exp: "Ra Internet cần Router." },
+                        { t: "b) Chia sẻ LAN không cần Internet.", ans: true, exp: "Đúng." },
+                        { t: "c) Switch ngắt, không chia sẻ LAN được.", ans: true, exp: "Đúng." },
+                        { t: "d) Thêm Hub cải thiện tốc độ.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 9. Công ti dùng Switch nội bộ, Router ra Internet.",
+                    statements: [
+                        { t: "a) Ra Internet phải có Router.", ans: true, exp: "Đúng." },
+                        { t: "b) Chia sẻ LAN không cần Router.", ans: true, exp: "Đúng (chỉ cần Switch)." },
+                        { t: "c) Thêm Switch ra Internet nhanh hơn.", ans: false, exp: "Sai, băng thông phụ thuộc nhà mạng." },
+                        { t: "d) Thay Switch bằng Hub cải thiện mạng.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 10. Mở rộng mạng học tập.",
+                    statements: [
+                        { t: "a) Thêm Router mở rộng cổng kết nối.", ans: false, exp: "Mở rộng cổng dùng Switch." },
+                        { t: "b) Lắp thêm Access Point tăng vùng Wi-Fi.", ans: true, exp: "Đúng." },
+                        { t: "c) Thay Modem bằng Router giúp quản lí/bảo mật.", ans: true, exp: "Đúng, Router thông minh hơn Modem thuần." },
+                        { t: "d) Lắp 2 modem song song tăng tốc độ mạng.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 11. Đại học nâng cấp mạng.",
+                    statements: [
+                        { t: "a) Dùng thêm Switch mở rộng kết nối PC.", ans: true, exp: "Đúng." },
+                        { t: "b) Lắp Access Point tăng tốc độ Internet.", ans: false, exp: "Sai, AP phát Wi-Fi chứ không tăng tốc đường truyền quang." },
+                        { t: "c) Router băng thông cao giúp mạng hiệu quả.", ans: true, exp: "Đúng (chống nghẽn)." },
+                        { t: "d) Nâng cấp modem tăng phủ sóng Wi-Fi.", ans: false, exp: "Sai, tăng phủ sóng phải dùng Access Point." }
+                    ]
+                },
+                {
+                    context: "Câu 12. Chia sẻ tệp offline qua Switch.",
+                    statements: [
+                        { t: "a) NAS chia sẻ tệp LAN không cần Internet.", ans: true, exp: "Đúng (Ổ cứng mạng)." },
+                        { t: "b) DHCP cấp IP cho máy tính liên lạc.", ans: true, exp: "Đúng." },
+                        { t: "c) Tường lửa bảo vệ xâm nhập.", ans: true, exp: "Đúng." },
+                        { t: "d) Switch kết nối nhưng không chia sẻ được nếu không có phần mềm.", ans: false, exp: "Sai." }
+                    ]
+                },
+                {
+                    context: "Câu 13. Mất Wi-Fi nhà, muốn dùng máy bàn họp trực tuyến.",
+                    statements: [
+                        { t: "a) Cáp USB kết nối ĐT, bật USB Tethering chia mạng 4G.", ans: true, exp: "Giải pháp nhanh và tốt nhất cho PC bàn." },
+                        { t: "b) Khởi động lại Wi-Fi chờ thử.", ans: false, exp: "Sai, mất thời gian." },
+                        { t: "c) Chuyển phòng cải thiện Wi-Fi.", ans: false, exp: "Sai (nhà mạng rớt mạng)." },
+                        { t: "d) Gọi tổng đài chờ xử lí.", ans: false, exp: "Sai, trễ giờ họp." }
+                    ]
+                },
+                {
+                    context: "Câu 14. Thư mục MARKETING: XEM và ĐÓNG GÓP Ý KIẾN.",
+                    statements: [
+                        { t: "a) Full control Everyone.", ans: false, exp: "Sai." },
+                        { t: "b) Read Everyone.", ans: false, exp: "Sai." },
+                        { t: "c) Read MARKETING.", ans: true, exp: "Đúng (đủ đáp ứng Xem)." },
+                        { t: "d) Change MARKETING.", ans: true, exp: "Đúng (đáp ứng Sửa đổi ý kiến)." }
+                    ]
+                },
+                {
+                    context: "Câu 15. Máy PC (ko Wi-Fi) -> Switch. AP -> Switch.",
+                    statements: [
+                        { t: "a) PC dùng cáp mạng kết nối.", ans: true, exp: "Đúng." },
+                        { t: "b) Không Internet thành mạng LAN nội bộ.", ans: true, exp: "Đúng." },
+                        { t: "c) Dùng hub hiệu quả hơn switch.", ans: false, exp: "Sai." },
+                        { t: "d) Dây Internet cắm trực tiếp Wi-Fi.", ans: false, exp: "Sai, cắm qua Switch/Router." }
+                    ]
+                },
+                {
+                    context: "Câu 16. Quán Cafe: Bật mã hoá WPA2.",
+                    statements: [
+                        { t: "a) Bộ phát Wi-Fi là phần mạng LAN.", ans: true, exp: "Đúng (WLAN)." },
+                        { t: "b) WPA2 ngăn kết nối trái phép.", ans: true, exp: "Đúng." },
+                        { t: "c) Modem gán IP cho Wi-Fi.", ans: false, exp: "Sai, Router/DHCP cấp IP." },
+                        { t: "d) Thiết bị khách là phần LAN nội bộ.", ans: true, exp: "Đúng." }
+                    ]
+                },
+                {
+                    context: "Câu 17. Chia sẻ file không cần Internet.",
+                    statements: [
+                        { t: "a) NAS chia sẻ file mạng cục bộ.", ans: true, exp: "Đúng." },
+                        { t: "b) DHCP gán IP cho máy nội bộ.", ans: true, exp: "Đúng." },
+                        { t: "c) Không cần Internet vẫn chia sẻ tệp qua Switch.", ans: true, exp: "Đúng." },
+                        { t: "d) Switch gán IP cho máy tính.", ans: false, exp: "Sai, DHCP Server gán IP, Switch lớp 2 chỉ xử lí địa chỉ MAC." }
+                    ]
+                }
+            ]
+        };
+
+        // ==========================================
+        // LOGIC ỨNG DỤNG
+        // ==========================================
+        let currentTab = 'topic1';
+        let state = {
+            topic1: { mcq: {}, tf: {}, isSub: false },
+            topic2: { mcq: {}, tf: {}, isSub: false }
+        };
+
+        const letters = ['A', 'B', 'C', 'D'];
+
+        // Render HTML Generator
+        function generateQuizHTML(topicId, data) {
+            let htmlMCQ = data.mcq.map((q, qIndex) => `
+                <div class="question-block" id="${topicId}-mcq-${qIndex}">
+                    <div class="question-text">${q.q}</div>
+                    <div class="options-grid">
+                        ${q.options.map((opt, oIndex) => `
+                            <div class="option-item" onclick="selectMCQ('${topicId}', ${qIndex}, ${oIndex})" id="${topicId}-opt-${qIndex}-${oIndex}">
+                                <span>${opt}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="explanation" id="${topicId}-mcq-exp-${qIndex}"><strong>💡 Giải thích:</strong> ${q.exp}</div>
+                </div>
+            `).join('');
+
+            let htmlTF = data.tf.map((scenario, sIndex) => `
+                <div class="question-block" id="${topicId}-tf-${sIndex}">
+                    <div class="scenario-context">${scenario.context}</div>
+                    <div class="tf-statements">
+                        ${scenario.statements.map((st, stIndex) => `
+                            <div class="tf-statement">
+                                <div class="tf-top">
+                                    <div class="tf-text">${st.t}</div>
+                                    <div class="tf-actions">
+                                        <button class="tf-btn" id="${topicId}-btn-${sIndex}-${stIndex}-true" onclick="selectTF('${topicId}', ${sIndex}, ${stIndex}, true)">ĐÚNG</button>
+                                        <button class="tf-btn" id="${topicId}-btn-${sIndex}-${stIndex}-false" onclick="selectTF('${topicId}', ${sIndex}, ${stIndex}, false)">SAI</button>
+                                    </div>
+                                </div>
+                                <div class="explanation" id="${topicId}-tf-exp-${sIndex}-${stIndex}"><strong>💡 Giải thích:</strong> ${st.exp}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById(`${topicId}-mcq`).innerHTML = htmlMCQ;
+            document.getElementById(`${topicId}-tf`).innerHTML = htmlTF;
+        }
+
+        // Khởi tạo giao diện
+        generateQuizHTML('topic1', dataT1);
+        generateQuizHTML('topic2', dataT2);
+
+        // Chuyển Tab
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            // Ẩn/hiện điểm của tab tương ứng
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            if(state[tabId].isSub) {
+                let s = calculateScore(tabId);
+                scoreDisplay.innerHTML = `Điểm: ${s.correct} / ${s.total}`;
+                scoreDisplay.style.display = 'block';
+            } else {
+                scoreDisplay.style.display = 'none';
+            }
+        }
+
+        // Chọn trắc nghiệm MCQ
+        function selectMCQ(topicId, qIndex, oIndex) {
+            if (state[topicId].isSub) return;
+            state[topicId].mcq[qIndex] = oIndex;
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`${topicId}-opt-${qIndex}-${i}`).classList.remove('selected');
+            }
+            document.getElementById(`${topicId}-opt-${qIndex}-${oIndex}`).classList.add('selected');
+        }
+
+        // Chọn Đúng Sai
+        function selectTF(topicId, sIndex, stIndex, value) {
+            if (state[topicId].isSub) return;
+            state[topicId].tf[`${sIndex}_${stIndex}`] = value;
+            
+            const bTrue = document.getElementById(`${topicId}-btn-${sIndex}-${stIndex}-true`);
+            const bFalse = document.getElementById(`${topicId}-btn-${sIndex}-${stIndex}-false`);
+            
+            bTrue.classList.remove('selected-true');
+            bFalse.classList.remove('selected-false');
+
+            if (value === true) bTrue.classList.add('selected-true');
+            else bFalse.classList.add('selected-false');
+        }
+
+        // Tính điểm
+        function calculateScore(topicId) {
+            let data = topicId === 'topic1' ? dataT1 : dataT2;
+            let correctCount = 0;
+            let totalCount = data.mcq.length + (data.tf.length * 4);
+
+            data.mcq.forEach((q, i) => { if(state[topicId].mcq[i] === q.ans) correctCount++; });
+            data.tf.forEach((scenario, sIdx) => {
+                scenario.statements.forEach((st, stIdx) => {
+                    if(state[topicId].tf[`${sIdx}_${stIdx}`] === st.ans) correctCount++;
+                });
+            });
+            return { correct: correctCount, total: totalCount };
+        }
+
+        // Kiểm tra kết quả Tab hiện tại
+        function checkResults() {
+            let topicId = currentTab;
+            if (state[topicId].isSub) return;
+            state[topicId].isSub = true;
+            let data = topicId === 'topic1' ? dataT1 : dataT2;
+
+            // Chấm MCQ
+            data.mcq.forEach((q, qIndex) => {
+                let selected = state[topicId].mcq[qIndex];
+                let correct = q.ans;
+                
+                // Khóa tương tác
+                for(let i=0; i<4; i++) document.getElementById(`${topicId}-opt-${qIndex}-${i}`).classList.add('disabled');
+
+                if (selected === correct) {
+                    document.getElementById(`${topicId}-opt-${qIndex}-${selected}`).classList.add('correct');
+                } else {
+                    if (selected !== undefined) document.getElementById(`${topicId}-opt-${qIndex}-${selected}`).classList.add('wrong');
+                    document.getElementById(`${topicId}-opt-${qIndex}-${correct}`).classList.add('missed');
+                }
+                document.getElementById(`${topicId}-mcq-exp-${qIndex}`).style.display = 'block';
+            });
+
+            // Chấm TF
+            data.tf.forEach((scenario, sIndex) => {
+                scenario.statements.forEach((st, stIndex) => {
+                    let selected = state[topicId].tf[`${sIndex}_${stIndex}`];
+                    let correct = st.ans;
+                    
+                    const bTrue = document.getElementById(`${topicId}-btn-${sIndex}-${stIndex}-true`);
+                    const bFalse = document.getElementById(`${topicId}-btn-${sIndex}-${stIndex}-false`);
+                    bTrue.classList.add('disabled'); bFalse.classList.add('disabled');
+
+                    if (selected === correct) {
+                        if (correct) bTrue.classList.add('correct'); else bFalse.classList.add('correct');
+                    } else {
+                        if (selected === true) bTrue.classList.add('wrong');
+                        if (selected === false) bFalse.classList.add('wrong');
+                        if (correct === true) bTrue.classList.add('missed'); else bFalse.classList.add('missed');
+                    }
+                    document.getElementById(`${topicId}-tf-exp-${sIndex}-${stIndex}`).style.display = 'block';
+                });
+            });
+
+            // Hiển thị điểm
+            let s = calculateScore(topicId);
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            scoreDisplay.innerHTML = `Đạt: ${s.correct} / ${s.total} ý`;
+            scoreDisplay.style.display = 'block';
+        }
+
+        // Làm lại Tab hiện tại
+        function resetQuiz() {
+            if(!confirm("Làm lại bài tập của Chủ đề này?")) return;
+            let topicId = currentTab;
+            state[topicId] = { mcq: {}, tf: {}, isSub: false };
+            
+            // Reset CSS
+            document.querySelectorAll(`#${topicId} .option-item`).forEach(el => el.className = 'option-item');
+            document.querySelectorAll(`#${topicId} .tf-btn`).forEach(el => el.className = 'tf-btn');
+            document.querySelectorAll(`#${topicId} .explanation`).forEach(el => el.style.display = 'none');
+            
+            document.getElementById('scoreDisplay').style.display = 'none';
+            document.querySelector(`#${topicId} .quiz`).scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Cờ Caro Rèn Trí Tuệ</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32; 
+            --cell-bg: #90ee90;
+            --cell-hover: #a9f5a9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+
+        .control-panel {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            max-width: 800px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-o { background-color: #007bff; color: white; }
+        .btn-x { background-color: #dc3545; color: white; }
+        .btn-green { background-color: #0f8a5f; color: white; }
+        .btn-red { background-color: #d9383a; color: white; }
+        .btn-start { background-color: #007bff; color: white; }
+
+        .btn-o.active, .btn-x.active {
+            outline: 3px solid #000;
+        }
+
+        .stats, .info-text {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .info-text {
+            color: #555;
+            font-style: italic;
+        }
+
+        input[type="number"] {
+            padding: 6px 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .board-container {
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 10px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 4px;
+        }
+
+        .cell {
+            background-color: var(--cell-bg);
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .cell:hover {
+            background-color: var(--cell-hover);
+        }
+
+        .cell.O { color: #007bff; }
+        .cell.X { color: #dc3545; }
+        .cell.disabled { cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="header" id="mainHeader">TRÒ CHƠI CỜ CARO RÈN TRÍ TUỆ</div>
+
+    <div class="control-panel">
+        <div class="row">
+            <button class="btn-o active" id="btnSelectO" onclick="selectSide('O')">Chọn O</button>
+            <button class="btn-x" id="btnSelectX" onclick="selectSide('X')">Chọn X</button>
+            <div class="stats">Điểm: <span id="scoreHuman">0</span> - <span id="scoreAI">0</span></div>
+            <div class="stats">Lượt chơi: <input type="number" id="turnCount" value="0" readonly></div>
+        </div>
+
+        <div class="row">
+            <button class="btn-green" onclick="changeTheme('green')">Chọn Màu Xanh</button>
+            <button class="btn-red" onclick="changeTheme('red')">Chọn Màu Đỏ</button>
+            <div class="info-text" id="turnIndicator">Người đi trước ván này</div>
+            <button class="btn-start" onclick="initGame()">Bắt đầu trò chơi</button>
+        </div>
+    </div>
+
+    <div class="board-container">
+        <div class="board" id="board"></div>
+    </div>
+
+    <script>
+        const SIZE = 15; 
+        let boardState = [];
+        let humanSide = 'O';
+        let aiSide = 'X';
+        let isGameActive = false;
+        let currentTurn = 0;
+        let scoreHuman = 0;
+        let scoreAI = 0;
+        
+        // Biến kiểm soát ai đi trước ở đầu trận: 'human' hoặc 'ai'
+        // Mặc định ban đầu ván 1 là người đi trước
+        let currentFirstPlayer = 'human'; 
+
+        function createBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            boardState = Array(SIZE).fill(null).map(() => Array(SIZE).fill(''));
+
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener('click', () => makeMove(r, c));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function changeTheme(color) {
+            const root = document.documentElement;
+            if (color === 'green') {
+                root.style.setProperty('--primary-color', '#2e7d32');
+                root.style.setProperty('--cell-bg', '#90ee90');
+                root.style.setProperty('--cell-hover', '#a9f5a9');
+            } else {
+                root.style.setProperty('--primary-color', '#c62828');
+                root.style.setProperty('--cell-bg', '#ff9999');
+                root.style.setProperty('--cell-hover', '#ffb3b3');
+            }
+        }
+
+        function selectSide(side) {
+            if (isGameActive) return; 
+            humanSide = side;
+            aiSide = (side === 'O') ? 'X' : 'O';
+            
+            document.getElementById('btnSelectO').classList.toggle('active', side === 'O');
+            document.getElementById('btnSelectX').classList.toggle('active', side === 'X');
+        }
+
+        function initGame() {
+            createBoard();
+            isGameActive = true;
+            currentTurn = 0;
+            document.getElementById('turnCount').value = currentTurn;
+
+            // Hiển thị trạng thái ai đi trước trực quan lên giao diện
+            if (currentFirstPlayer === 'human') {
+                document.getElementById('turnIndicator').innerText = "Người đi trước ván này";
+            } else {
+                document.getElementById('turnIndicator').innerText = "Máy đi trước ván này";
+                setTimeout(aiMove, 300); // Máy tự kích hoạt nước đi đầu tiên nếu đi trước
+            }
+        }
+
+        function makeMove(r, c) {
+            if (!isGameActive || boardState[r][c] !== '') return;
+
+            placePiece(r, c, humanSide);
+
+            if (checkWin(r, c, humanSide)) {
+                alert("Chúc mừng! Bạn đã chiến thắng!");
+                scoreHuman++;
+                document.getElementById('scoreHuman').innerText = scoreHuman;
+                isGameActive = false;
+                
+                // Người thắng thì ván sau phải đi sau -> Máy đi trước
+                currentFirstPlayer = 'ai'; 
+                document.getElementById('turnIndicator').innerText = "Máy đi trước ván tiếp theo";
+                return;
+            }
+
+            if (isBoardFull()) {
+                alert("Hòa cờ!");
+                isGameActive = false;
+                return;
+            }
+
+            setTimeout(aiMove, 200);
+        }
+
+        function placePiece(r, c, side) {
+            boardState[r][c] = side;
+            const index = r * SIZE + c;
+            const cell = document.getElementById('board').children[index];
+            cell.innerText = side;
+            cell.classList.add(side, 'disabled');
+            
+            currentTurn++;
+            document.getElementById('turnCount').value = currentTurn;
+        }
+
+        function isBoardFull() {
+            return boardState.every(row => row.every(cell => cell !== ''));
+        }
+
+        function aiMove() {
+            if (!isGameActive) return;
+
+            let move = getHardMove();
+
+            if (move) {
+                placePiece(move.r, move.c, aiSide);
+                if (checkWin(move.r, move.c, aiSide)) {
+                    alert("Máy đã chiến thắng! Thử lại ở ván sau nhé.");
+                    scoreAI++;
+                    document.getElementById('scoreAI').innerText = scoreAI;
+                    isGameActive = false;
+                    
+                    // Máy thắng thì ván sau Máy đi sau -> Người đi trước
+                    currentFirstPlayer = 'human';
+                    document.getElementById('turnIndicator').innerText = "Người đi trước ván tiếp theo";
+                }
+            }
+        }
+
+        // --- THUẬT TOÁN AI MẶC ĐỊNH: KHÓ ---
+        function getHardMove() {
+            let bestScore = -1;
+            let bestMoves = [];
+
+            // Nếu đây là nước đi đầu tiên của toàn trận và Máy đi trước, chiếm ngay trung tâm
+            if (currentTurn === 0) {
+                return { r: Math.floor(SIZE/2), c: Math.floor(SIZE/2) };
+            }
+
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (boardState[r][c] === '') {
+                        let attack = evaluateCellHard(r, c, aiSide);
+                        let defense = evaluateCellHard(r, c, humanSide);
+                        
+                        // Nhân hệ số chặn nguy hiểm để cản phá các chuỗi thắng của người chơi
+                        let totalScore = attack + defense * 1.4; 
+
+                        if (totalScore > bestScore) {
+                            bestScore = totalScore;
+                            bestMoves = [{r, c}];
+                        } else if (totalScore === bestScore) {
+                            bestMoves.push({r, c});
+                        }
+                    }
+                }
+            }
+            return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        }
+
+        // Đánh giá sâu ma trận ô cờ (Quét khoảng trống hai đầu và thiết lập bẫy cờ)
+        function evaluateCellHard(r, c, side) {
+            let score = 0;
+            const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+
+            for (let [dr, dc] of dirs) {
+                let count = 1; 
+                let openEnds = 0;
+
+                let i = 1;
+                while (true) {
+                    let nr = r + dr*i, nc = c + dc*i;
+                    if (nr>=0 && nr<SIZE && nc>=0 && nc<SIZE) {
+                        if (boardState[nr][nc] === side) { count++; }
+                        else if (boardState[nr][nc] === '') { openEnds++; break; }
+                        else { break; }
+                    } else { break; }
+                    i++;
+                }
+
+                i = 1;
+                while (true) {
+                    let nr = r - dr*i, nc = c - dc*i;
+                    if (nr>=0 && nr<SIZE && nc>=0 && nc<SIZE) {
+                        if (boardState[nr][nc] === side) { count++; }
+                        else if (boardState[nr][nc] === '') { openEnds++; break; }
+                        else { break; }
+                    } else { break; }
+                    i++;
+                }
+
+                // Cách chấm điểm dựa theo tính chất chuỗi và thế cờ trống đầu
+                if (count >= 5) score += 100000; 
+                else if (count === 4) {
+                    if (openEnds === 2) score += 10000; 
+                    else if (openEnds === 1) score += 2000;
+                } else if (count === 3) {
+                    if (openEnds === 2) score += 1500;  
+                    else if (openEnds === 1) score += 400;
+                } else if (count === 2) {
+                    if (openEnds === 2) score += 200;
+                    else if (openEnds === 1) score += 50;
+                } else if (count === 1) {
+                    if (openEnds === 2) score += 10;
+                }
+            }
+            return score;
+        }
+
+        function checkWin(r, c, side) {
+            const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+            for (let [dr, dc] of dirs) {
+                let count = 1;
+                for (let i = 1; i < 5; i++) {
+                    let nr = r + dr*i, nc = c + dc*i;
+                    if (nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && boardState[nr][nc] === side) count++;
+                    else break;
+                }
+                for (let i = 1; i < 5; i++) {
+                    let nr = r - dr*i, nc = c - dc*i;
+                    if (nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && boardState[nr][nc] === side) count++;
+                    else break;
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>

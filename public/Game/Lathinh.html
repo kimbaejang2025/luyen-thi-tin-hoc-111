@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Lật Hình - Khám Phá Ảnh Thần Tượng</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+            user-select: none;
+        }
+
+        h1 {
+            margin: 10px 0 5px 0;
+            color: #2b6cb0;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Thanh UI thông tin phía trên */
+        #ui-layer {
+            width: 700px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background-color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        #txt-timer span { color: #e53e3e; }
+        #txt-stage span { color: #3182ce; }
+
+        /* Khung chứa game chính */
+        #game-container {
+            position: relative;
+            width: 700px;
+            height: 480px;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* LỚP NỀN ẨN PHÍA SAU (HIỂN THỊ HÌNH ẢNH THỰC TẾ) */
+        #idol-bg-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end; /* Đẩy chữ thông tin xuống dưới đáy để không che mặt nhân vật */
+            box-sizing: border-box;
+        }
+
+        /* Vùng phủ đen mờ mỏng phía dưới chữ để đọc chữ rõ hơn trên nền ảnh */
+        .idol-info-bar {
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+            padding: 20px 10px 15px 10px;
+            text-align: center;
+            box-sizing: border-box;
+            color: white;
+        }
+
+        .idol-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 0;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .idol-title {
+            font-size: 16px;
+            color: #e2e8f0;
+            margin: 5px 0 0 0;
+            font-style: italic;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        /* LỚP BÀN CỜ LẬT HÌNH PHÍA TRƯỚC (4x4 = 16 ô bài) */
+        #grid-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 130px);
+            grid-template-rows: repeat(4, 90px);
+            gap: 15px;
+            align-content: center;
+            justify-content: center;
+            z-index: 2; /* Nằm đè lên lớp nền ảnh */
+            background-color: transparent;
+        }
+
+        /* Thiết kế lá bài */
+        .card {
+            perspective: 1000px;
+            cursor: pointer;
+            width: 130px;
+            height: 90px;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 2px solid #fff;
+            box-sizing: border-box;
+        }
+
+        /* Mặt úp của lá bài */
+        .card-back {
+            font-size: 28px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Mặt ngửa của lá bài hiển thị Emoji */
+        .card-front {
+            background-color: #ffffff;
+            transform: rotateY(180deg);
+            font-size: 40px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        /* Khi cặp bài đã khớp -> ẩn đi để lộ ảnh */
+        .card.matched {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* MÀN HÌNH CHỨC NĂNG */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(26, 32, 44, 0.96);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; z-index: 20;
+        }
+
+        .screen h2 { font-size: 36px; color: #ffd700; margin-bottom: 10px; }
+        .screen p { font-size: 18px; margin-bottom: 25px; color: #cbd5e0; text-align: center; max-width: 500px; }
+
+        button {
+            padding: 12px 35px; font-size: 18px; font-weight: bold;
+            background-color: #3182ce; color: white; border: none;
+            border-radius: 25px; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+        }
+        button:hover { transform: translateY(-2px); background-color: #4299e1; }
+    </style>
+</head>
+<body>
+
+    <h1>TRÒ CHƠI LẬT HÌNH THẦN TƯỢNG</h1>
+
+    <div id="ui-layer">
+        <div id="txt-stage">CẢNH: <span>1/10</span></div>
+        <div id="txt-timer">THỜI GIAN: <span>0</span> giây</div>
+    </div>
+
+    <div id="game-container">
+        <div id="idol-bg-layer">
+            <div class="idol-info-bar">
+                <p class="idol-name" id="lbl-idol-name">Sơn Tùng M-TP</p>
+                <p class="idol-title" id="lbl-idol-title">Ca sĩ / Biểu tượng Vpop</p>
+            </div>
+        </div>
+
+        <div id="grid-layer"></div>
+
+        <div id="start-screen" class="screen">
+            <h2 style="color: #4299e1;">THỬ THÁCH TRÍ NHỚ</h2>
+            <p>Lật mở các cặp hình giống nhau để khám phá chân dung thực tế của các nhân vật nổi tiếng!</p>
+            <button onclick="startGame()">Bắt đầu chơi</button>
+        </div>
+
+        <div id="clear-screen" class="screen" style="display: none;">
+            <h2>MÀN CHƠI HOÀN THÀNH!</h2>
+            <p id="clear-screen-desc"></p>
+            <button onclick="nextStage()">Tiến vào Cảnh tiếp theo</button>
+        </div>
+
+        <div id="victory-screen" class="screen" style="display: none;">
+            <h2 style="color: #ecc94b;">🎉 CHÚC MỪNG VÔ ĐỊCH 🎉</h2>
+            <p>Bạn đã xuất sắc mở khóa toàn bộ album ảnh của cả 10 nhân vật nổi tiếng!</p>
+            <button onclick="resetToMenu()">Quay lại Menu chính</button>
+        </div>
+    </div>
+
+    <script>
+        const gridLayer = document.getElementById('grid-layer');
+        const stageTxt = document.getElementById('txt-stage');
+        const timerTxt = document.getElementById('txt-timer');
+        
+        // Nhãn thông tin lớp nền
+        const idolBgLayer = document.getElementById('idol-bg-layer');
+        const lblIdolName = document.getElementById('lbl-idol-name');
+        const lblIdolTitle = document.getElementById('lbl-idol-title');
+
+        // Các màn hình trạng thái
+        const startScreen = document.getElementById('start-screen');
+        const clearScreen = document.getElementById('clear-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+
+        // MẢNG DỮ LIỆU CẤU HÌNH: Đã tích hợp sẵn link ảnh trực tuyến chất lượng cao của từng nhân vật
+        const STAGES = [
+            { id: 1,  theme: "Trái Cây 🍎", items: ['🍎','🍌','🍇','🍊','🍉','🍓','🍍','🥑'], color: '#ec4899', name: "Sơn Tùng M-TP", title: "Ngôi sao ca nhạc / Biểu tượng Vpop", img: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=700&auto=format&fit=crop&q=80" },
+            { id: 2,  theme: "Con Vật 🐶", items: ['🐶','🐱','🦁','🐯','🦊','🐰','🐼','🐨'], color: '#f59e0b', name: "J97 (Jack)", title: "Ca sĩ / Nhạc sĩ nhạc trẻ Việt Nam", img: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=700&auto=format&fit=crop&q=80" },
+            { id: 3,  theme: "Ẩm Thực 🍔", items: ['🍕','🍔','🍟','🌭','🍿','🍩','🍦','🍣'], color: '#10b981', name: "Quang Hùng MasterD", title: "Phù thủy tạo hit / Cơn sốt nhạc Pop", img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=700&auto=format&fit=crop&q=80" },
+            { id: 4,  theme: "Thời Tiết ☀️", items: ['☀️','🌤️','🌧️','⛈️','❄️','💨','🌈','🌊'], color: '#3b82f6', name: "Donald Trump", title: "Tổng thống thứ 45 & 47 của Hoa Kỳ", img: "https://upload.wikimedia.org/wikipedia/commons/5/56/Donald_Trump_official_portrait.jpg" },
+            { id: 5,  theme: "Phương Tiện 🚗", items: ['🚗','🚑','🛵','🚀','✈️','🚢','🚂','🛸'], color: '#6366f1', name: "Elon Musk", title: "Tỷ phú công nghệ / Giám đốc Tesla & SpaceX", img: "https://upload.wikimedia.org/wikipedia/commons/9/99/Elon_Musk_Colorado_2022_%28cropped2%29.jpg" },
+            { id: 6,  theme: "Thể Thao ⚽", items: ['⚽','🏀','🏈','🎾','🏐','🏸','🎱','🥊'], color: '#06b6d4', name: "Cristiano Ronaldo", title: "Huyền thoại bóng đá thế giới / Siêu sao CR7", img: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=700&auto=format&fit=crop&q=80" },
+            { id: 7,  theme: "Cây Cối 🌲", items: ['🌵','🌲','🌳','🌴','🌱','🌿','☘️','🍀'], color: '#84cc16', name: "Lionel Messi", title: "Thiên tài bóng đá thế giới / Nhà vô địch World Cup", img: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=700&auto=format&fit=crop&q=80" },
+            { id: 8,  theme: "Biểu Cảm 😀", items: ['😀','😂','😍','😎','🤫','🤔','😡','🥶'], color: '#a855f7', name: "Châu Tinh Trì", title: "Vua phim hài điện ảnh Hồng Kông", img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=700&auto=format&fit=crop&q=80" },
+            { id: 9,  theme: "Không Gian 🌌", items: ['🌍','🌙','⭐','🪐','☄️','🌌','☀️','🛰️'], color: '#f43f5e', name: "Trấn Thành", title: "Nghệ sĩ đa tài / Đạo diễn phim kỷ lục phòng vé", img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&auto=format&fit=crop&q=80" },
+            { id: 10, theme: "Nghề Nghiệp 🧑‍⚕️", items: ['🧑‍🏫','🧑‍⚕️','🧑‍🍳','🧑‍🚀','🧑‍✈️','🧑‍🎨','👮','🧑‍🚒'], color: '#64748b', name: "Trí Tuệ Nhân Tạo AI", title: "Người trợ lý Gemini thông minh của bạn", img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=700&auto=format&fit=crop&q=80" }
+        ];
+
+        let currentStageIndex = 0;
+        let selectedCards = [];
+        let isPreventClick = false;
+        let totalMatchesFound = 0;
+
+        let gameTime = 0;
+        let timerInterval = null;
+
+        function startGame() {
+            currentStageIndex = 0;
+            startScreen.style.display = 'none';
+            setupStage();
+        }
+
+        function setupStage() {
+            gridLayer.innerHTML = '';
+            selectedCards = [];
+            isPreventClick = false;
+            totalMatchesFound = 0;
+
+            let stage = STAGES[currentStageIndex];
+            stageTxt.querySelector('span').innerText = `${stage.id}/10`;
+
+            // 1. Cấu hình đưa hình ảnh thực tế của nhân vật vào thuộc tính background-image của lớp nền
+            idolBgLayer.style.backgroundImage = `url('${stage.img}')`;
+            lblIdolName.innerText = stage.name;
+            lblIdolTitle.innerText = stage.title;
+
+            // 2. Nhân đôi mảng vật phẩm tạo thành cặp bài (16 lá)
+            let cardItems = [...stage.items, ...stage.items];
+            cardItems.sort(() => Math.random() - 0.5);
+
+            // 3. Tạo các thẻ bài xếp lên Grid
+            cardItems.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.emoji = emoji;
+                card.dataset.id = index;
+
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-face card-back" style="background-color: ${stage.color};">❓</div>
+                        <div class="card-face card-front">${emoji}</div>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => onCardClick(card));
+                gridLayer.appendChild(card);
+            });
+
+            // Bộ đếm thời gian ván đấu
+            if (currentStageIndex === 0) {
+                gameTime = 0;
+                timerTxt.querySelector('span').innerText = gameTime;
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    gameTime++;
+                    timerTxt.querySelector('span').innerText = gameTime;
+                }, 1000);
+            }
+        }
+
+        function onCardClick(card) {
+            if (isPreventClick || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.classList.add('flipped');
+            selectedCards.push(card);
+
+            if (selectedCards.length === 2) {
+                isPreventClick = true;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            let card1 = selectedCards[0];
+            let card2 = selectedCards[1];
+
+            if (card1.dataset.emoji === card2.dataset.emoji) {
+                setTimeout(() => {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    
+                    totalMatchesFound++;
+                    selectedCards = [];
+                    isPreventClick = false;
+
+                    if (totalMatchesFound === 8) {
+                        handleStageClear();
+                    }
+                }, 400);
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    selectedCards = [];
+                    isPreventClick = false;
+                }, 800);
+            }
+        }
+
+        function handleStageClear() {
+            let currentStage = STAGES[currentStageIndex];
+            
+            if (currentStageIndex < STAGES.length - 1) {
+                document.getElementById('clear-screen-desc').innerText = `Chúc mừng bạn đã hoàn thành chủ đề "${currentStage.theme}" và mở khóa thành công tấm ảnh chân dung sắc nét của nhân vật: ${currentStage.name}!`;
+                setTimeout(() => {
+                    clearScreen.style.display = 'flex';
+                }, 600);
+            } else {
+                clearInterval(timerInterval);
+                setTimeout(() => {
+                    victoryScreen.style.display = 'flex';
+                }, 600);
+            }
+        }
+
+        function nextStage() {
+            currentStageIndex++;
+            clearScreen.style.display = 'none';
+            setupStage();
+        }
+
+        function resetToMenu() {
+            victoryScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+            gridLayer.innerHTML = '';
+            clearInterval(timerInterval);
+            timerTxt.querySelector('span').innerText = 0;
+            idolBgLayer.style.backgroundImage = 'none';
+        }
+    </script>
+</body>
+</html>

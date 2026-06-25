@@ -27,7 +27,7 @@ export default function ExamCard({ exam, onStart }) {
   };
 
   return (
-    <div className="glass-card interactive" onClick={(e) => handleStartExam(e, !!exam.htmlUrl)}>
+    <div className="glass-card interactive" onClick={(e) => handleStartExam(e, !!(exam.htmlUrl || exam.htmlContent))}>
       <span className={getBadgeClass(exam.category)}>
         {getCategoryLabel(exam.category)}
       </span>
@@ -43,11 +43,11 @@ export default function ExamCard({ exam, onStart }) {
         </div>
         <div className="exam-meta-item">
           <Icon name="FileText" style={{ width: '16px', height: '16px' }} />
-          <span>{exam.htmlUrl ? `${exam.questions?.length || 48} câu hỏi` : `${exam.questions?.length || 0} câu hỏi`}</span>
+          <span>{(exam.htmlUrl || exam.htmlContent) ? `${exam.questions?.length || 48} câu hỏi` : `${exam.questions?.length || 0} câu hỏi`}</span>
         </div>
       </div>
       
-      {exam.htmlUrl ? (
+      {(exam.htmlUrl || exam.htmlContent) ? (
         <button 
           className="btn btn-primary" 
           onClick={(e) => handleStartExam(e, true)} 

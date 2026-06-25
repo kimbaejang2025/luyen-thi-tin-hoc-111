@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clb Bida Trí Tuệ - Đấu Với Máy AI Khó</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: white;
+            user-select: none;
+        }
+
+        h1 {
+            margin: 5px 0;
+            color: #4caf50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        }
+
+        #game-container {
+            position: relative;
+            background-color: #2c2c2c;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Thanh trạng thái thông tin */
+        #ui-layer {
+            width: 800px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px dashed #555;
+            padding-bottom: 10px;
+        }
+
+        #ui-layer span {
+            color: #ffd700;
+        }
+
+        canvas {
+            background-color: #076324; /* Màu nỉ bàn bida xanh mướt */
+            border: 18px solid #5c3a21; /* Thành băng gỗ sồi dày dặn */
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .instruction {
+            font-size: 14px;
+            color: #aaa;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        button {
+            padding: 10px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+
+    <h1>CLB BIDA ĐẤU TRÍ VỚI MÁY AI</h1>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div>BẠN: <span id="txt-score-player">0</span></div>
+            <div style="text-align: center; color: #ff9800; font-size: 20px;" id="txt-status">Lượt của bạn!</div>
+            <div>MÁY AI: <span id="txt-score-ai">0</span></div>
+        </div>
+
+        <canvas id="poolCanvas" width="800" height="400"></canvas>
+
+        <button onclick="resetTable()">Xếp lại bàn mới</button>
+
+        <div class="instruction">
+            Thao tác: <b>Rê chuột</b> để ngắm hướng khi tới lượt.<br>
+            <b>Nhấn giữ Chuột Trái</b> để tụ lực đánh $\rightarrow$ <b>Nhả chuột</b> để bắn bóng!
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('poolCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scorePlayerTxt = document.getElementById('txt-score-player');
+        const scoreAiTxt = document.getElementById('txt-score-ai');
+        const statusTxt = document.getElementById('txt-status');
+
+        const BALL_RADIUS = 12;
+        const FRICTION = 0.985; 
+
+        // Tọa độ 6 lỗ bida
+        const HOLES = [
+            { x: 0, y: 0 }, { x: 400, y: -5 }, { x: 800, y: 0 },
+            { x: 0, y: 400 }, { x: 400, y: 405 }, { x: 800, y: 400 }
+        ];
+        const HOLE_RADIUS = 24;
+
+        let balls = [];
+        let cueBall = null; 
+        
+        let scorePlayer = 0;
+        let scoreAi = 0;
+        let currentTurn = 'player'; // 'player' hoặc 'ai'
+        let hasBallSunkThisTurn = false; // Đánh dấu nếu có bi vào lỗ trong lượt hiện tại
+
+        let isCharging = false;
+        let mousePos = { x: 0, y: 0 };
+        let power = 0;
+        let maxPower = 28;
+        let chargeDirection = 1;
+        let aiThinkingTimeout = null;
+
+        const BALL_COLORS = ['#ffffff', '#ffeb3b', '#0288d1', '#d32f2f', '#7b1fa2', '#f57c00', '#388e3c', '#5d4037', '#111111', '#ffecb3', '#bbdefb', '#ffcdd2', '#e1bee7', '#ffe0b2', '#c8e6c9'];
+
+        canvas.addEventListener('mousemove', function(e) {
+            let rect = canvas.getBoundingClientRect();
+            mousePos.x = e.clientX - rect.left;
+            mousePos.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousedown', function(e) {
+            if (e.button === 0 && currentTurn === 'player' && tableIsStationary()) {
+                isCharging = true;
+            }
+        });
+
+        window.addEventListener('mouseup', function(e) {
+            if (e.button === 0 && isCharging && currentTurn === 'player') {
+                isCharging = false;
+                fireCueBall(mousePos.x, mousePos.y, power);
+                power = 0;
+            }
+        });
+
+        function resetTable() {
+            clearTimeout(aiThinkingTimeout);
+            balls = [];
+            scorePlayer = 0;
+            scoreAi = 0;
+            currentTurn = 'player';
+            scorePlayerTxt.innerText = scorePlayer;
+            scoreAiTxt.innerText = scoreAi;
+            statusTxt.innerText = "Lượt của bạn!";
+            statusTxt.style.color = "#ff9800";
+
+            cueBall = {
+                x: 200, y: 200, vx: 0, vy: 0,
+                color: '#ffffff', id: 0, isCue: true
+            };
+            balls.push(cueBall);
+
+            let startX = 550;
+            let startY = 200;
+            let countId = 1;
+
+            for (let row = 0; row < 5; row++) {
+                let x = startX + row * (BALL_RADIUS * 1.75);
+                let topY = startY - row * BALL_RADIUS;
+                for (let col = 0; col <= row; col++) {
+                    let y = topY + col * (BALL_RADIUS * 2);
+                    let color = BALL_COLORS[countId % BALL_COLORS.length];
+                    if (countId === 5) color = '#111111'; 
+
+                    balls.push({
+                        x: x, y: y, vx: 0, vy: 0,
+                        color: color, id: countId, isCue: false
+                    });
+                    countId++;
+                }
+            }
+
+            clearInterval(window.gameInterval);
+            window.gameInterval = setInterval(updatePhysicsAndRender, 1000 / 60);
+        }
+
+        function tableIsStationary() {
+            return balls.every(b => Math.abs(b.vx) < 0.05 && Math.abs(b.vy) < 0.05);
+        }
+
+        function fireCueBall(targetX, targetY, shootPower) {
+            if (!cueBall) return;
+            let dx = cueBall.x - targetX;
+            let dy = cueBall.y - targetY;
+            let dist = Math.hypot(dx, dy);
+            if (dist === 0) dist = 1;
+
+            cueBall.vx = (dx / dist) * shootPower;
+            cueBall.vy = (dy / dist) * shootPower;
+
+            hasBallSunkThisTurn = false;
+            statusTxt.innerText = "Bi đang lăn...";
+            statusTxt.style.color = "#a3ff7d";
+        }
+
+        // --- CHIẾN THUẬT MÁY AI CẤP ĐỘ KHÓ ---
+        function executeAIMove() {
+            if (!cueBall || isGameOver()) return;
+
+            let bestTargetBall = null;
+            let bestHole = null;
+            let highestScore = -Infinity;
+
+            // Duyệt qua toàn bộ bi mục tiêu hiện tại trên bàn để tìm mục tiêu ngon ăn nhất
+            for (let b of balls) {
+                if (b.isCue) continue;
+
+                for (let h of HOLES) {
+                    let distToHole = Math.hypot(h.x - b.x, h.y - b.y);
+                    let distToCue = Math.hypot(b.x - cueBall.x, b.y - cueBall.y);
+
+                    // Chấm điểm ưu tiên: Bi càng gần lỗ và gần bi cái thì điểm càng cao
+                    let currentScore = 1000 - distToHole - (distToCue * 0.5);
+
+                    // Kiểm tra hướng thẳng hàng cơ bản từ lỗ qua bi mục tiêu đến vị trí bi cái
+                    let angleToHole = Math.atan2(h.y - b.y, h.x - b.x);
+                    let angleToCue = Math.atan2(b.y - cueBall.y, b.x - cueBall.x);
+                    let angleDiff = Math.abs(angleToHole - angleToCue);
+
+                    // Nếu góc quá lệch (đánh cắt băng quá khó), trừ bớt điểm
+                    if (angleDiff > Math.PI / 3) currentScore -= 500;
+
+                    if (currentScore > highestScore) {
+                        highestScore = currentScore;
+                        bestTargetBall = b;
+                        bestHole = h;
+                    }
+                }
+            }
+
+            if (bestTargetBall && bestHole) {
+                // Tính toán điểm chạm bóng mục tiêu nâng cao của AI để hướng bóng vào lỗ
+                let angleToHole = Math.atan2(bestHole.y - bestTargetBall.y, bestHole.x - bestTargetBall.x);
+                let ghostX = bestTargetBall.x - Math.cos(angleToHole) * (BALL_RADIUS * 2);
+                let ghostY = bestTargetBall.y - Math.sin(angleToHole) * (BALL_RADIUS * 2);
+
+                // AI nhắm gậy ngược hướng từ điểm chạm bóng (Ghost Position) sang bi cái
+                let aimX = cueBall.x + (cueBall.x - ghostX);
+                let aimY = cueBall.y + (cueBall.y - ghostY);
+
+                // Tự tính toán lực sút phù hợp dựa trên khoảng cách
+                let distToGhost = Math.hypot(ghostX - cueBall.x, ghostY - cueBall.y);
+                let aiPower = Math.min(maxPower, 10 + (distToGhost * 0.04));
+
+                // Thực hiện sút
+                fireCueBall(aimX, aimY, aiPower);
+            } else {
+                // Nếu không tìm được hướng tốt, sút đại vào bi gần nhất bằng lực nhẹ
+                let randomTarget = balls.find(b => !b.isCue);
+                if (randomTarget) fireCueBall(randomTarget.x, randomTarget.y, 12);
+            }
+        }
+
+        function isGameOver() {
+            return balls.length <= 1; // Chỉ còn bi trắng
+        }
+
+        function handleTurnSwitch() {
+            if (isGameOver()) {
+                if (scorePlayer > scoreAi) statusTxt.innerText = "🏆 BẠN ĐÃ CHIẾN THẮNG CHUNG CUỘC!";
+                else if (scoreAi > scorePlayer) statusTxt.innerText = "❌ MÁY AI ĐÃ CHIẾN THẮNG!";
+                else statusTxt.innerText = "🤝 TRẬN ĐẤU HOÀ!";
+                statusTxt.style.color = "#ffd700";
+                return;
+            }
+
+            // Theo luật, nếu lượt vừa rồi ăn được bi, giữ nguyên quyền đánh tiếp
+            if (hasBallSunkThisTurn) {
+                if (currentTurn === 'player') {
+                    statusTxt.innerText = "Bạn ăn điểm! Được đánh tiếp.";
+                    statusTxt.style.color = "#00e5ff";
+                } else {
+                    statusTxt.innerText = "AI ăn điểm! AI đánh tiếp.";
+                    statusTxt.style.color = "#ff3366";
+                    aiThinkingTimeout = setTimeout(executeAIMove, 1200);
+                }
+            } else {
+                // Đổi lượt đi xen kẽ nếu không có bi vào lỗ
+                if (currentTurn === 'player') {
+                    currentTurn = 'ai';
+                    statusTxt.innerText = "Lượt của Máy AI...";
+                    statusTxt.style.color = "#ff4444";
+                    aiThinkingTimeout = setTimeout(executeAIMove, 1500); // AI suy nghĩ 1.5 giây trước khi ra cơ
+                } else {
+                    currentTurn = 'player';
+                    statusTxt.innerText = "Lượt của bạn!";
+                    statusTxt.style.color = "#ff9800";
+                }
+            }
+            hasBallSunkThisTurn = false;
+        }
+
+        function updatePhysicsAndRender() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Vẽ lỗ
+            ctx.fillStyle = '#111';
+            for (let h of HOLES) {
+                ctx.beginPath(); ctx.arc(h.x, h.y, HOLE_RADIUS, 0, Math.PI * 2); ctx.fill();
+                ctx.lineWidth = 3; ctx.strokeStyle = '#444'; ctx.stroke();
+            }
+
+            let previouslyStationary = tableIsStationary();
+
+            if (isCharging) {
+                power += chargeDirection * 0.5;
+                if (power > maxPower || power < 0) chargeDirection = -chargeDirection;
+            }
+
+            // 2. Cập nhật chuyển động vật lý
+            for (let i = 0; i < balls.length; i++) {
+                let b = balls[i];
+                b.x += b.vx; b.y += b.vy;
+                b.vx *= FRICTION; b.vy *= FRICTION;
+
+                if (Math.abs(b.vx) < 0.02) b.vx = 0;
+                if (Math.abs(b.vy) < 0.02) b.vy = 0;
+
+                if (b.x < BALL_RADIUS) { b.x = BALL_RADIUS; b.vx = -b.vx; }
+                if (b.x > canvas.width - BALL_RADIUS) { b.x = canvas.width - BALL_RADIUS; b.vx = -b.vx; }
+                if (b.y < BALL_RADIUS) { b.y = BALL_RADIUS; b.vy = -b.vy; }
+                if (b.y > canvas.height - BALL_RADIUS) { b.y = canvas.height - BALL_RADIUS; b.vy = -b.vy; }
+
+                for (let h of HOLES) {
+                    if (Math.hypot(b.x - h.x, b.y - h.y) < HOLE_RADIUS) {
+                        if (b.isCue) {
+                            setTimeout(() => {
+                                b.x = 200; b.y = 200; b.vx = 0; b.vy = 0;
+                                if (!balls.includes(b)) balls.push(b);
+                            }, 500);
+                            statusTxt.innerText = "Bi cái lọt lỗ! Đổi lượt.";
+                            statusTxt.style.color = "#ff3333";
+                            hasBallSunkThisTurn = false;
+                        } else {
+                            balls.splice(i, 1); i--;
+                            hasBallSunkThisTurn = true;
+                            if (currentTurn === 'player') {
+                                scorePlayer += 100; scorePlayerTxt.innerText = scorePlayer;
+                            } else {
+                                scoreAi += 100; scoreAiTxt.innerText = scoreAi;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Xử lý va chạm đàn hồi giữa các bi
+            for (let i = 0; i < balls.length; i++) {
+                for (let j = i + 1; j < balls.length; j++) {
+                    let b1 = balls[i]; let b2 = balls[j];
+                    let dx = b2.x - b1.x; let dy = b2.y - b1.y;
+                    let dist = Math.hypot(dx, dy);
+
+                    if (dist < BALL_RADIUS * 2) {
+                        let overlap = (BALL_RADIUS * 2) - dist;
+                        let nx = dx / dist; let ny = dy / dist;
+                        b1.x -= nx * overlap * 0.5; b1.y -= ny * overlap * 0.5;
+                        b2.x += nx * overlap * 0.5; b2.y += ny * overlap * 0.5;
+
+                        let kx = b1.vx - b2.vx; let ky = b1.vy - b2.vy;
+                        let p = nx * kx + ny * ky;
+                        if (p > 0) { b1.vx -= nx * p; b1.vy -= ny * p; b2.vx += nx * p; b2.vy += ny * p; }
+                    }
+                }
+            }
+
+            // Gọi hàm đổi lượt khi toàn bộ bi lăn vừa dừng hẳn lại
+            if (!previouslyStationary && tableIsStationary()) {
+                handleTurnSwitch();
+            }
+
+            // 4. Vẽ bi
+            for (let b of balls) {
+                ctx.beginPath(); ctx.arc(b.x, b.y, BALL_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = b.color; ctx.fill();
+                ctx.lineWidth = 1.5; ctx.strokeStyle = '#222'; ctx.stroke();
+                if (b.color !== '#ffffff') {
+                    ctx.beginPath(); ctx.arc(b.x - 4, b.y - 4, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
+                }
+            }
+
+            // 5. Vẽ gậy bida (Chỉ hiển thị vào lượt người chơi khi bàn đứng yên)
+            if (tableIsStationary() && cueBall && currentTurn === 'player') {
+                let dx = cueBall.x - mousePos.x;
+                let dy = cueBall.y - mousePos.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist > 5) {
+                    let angle = Math.atan2(dy, dx);
+                    ctx.beginPath(); ctx.setLineDash([5, 8]); ctx.moveTo(cueBall.x, cueBall.y);
+                    ctx.lineTo(cueBall.x + Math.cos(angle) * 160, cueBall.y + Math.sin(angle) * 160);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+
+                    let cueOffset = 25 + power * 1.2;
+                    let cueLength = 220;
+                    let cueStartX = cueBall.x - Math.cos(angle) * cueOffset;
+                    let cueStartY = cueBall.y - Math.sin(angle) * cueOffset;
+                    let cueEndX = cueBall.x - Math.cos(angle) * (cueOffset + cueLength);
+                    let cueEndY = cueBall.y - Math.sin(angle) * (cueOffset + cueLength);
+
+                    ctx.beginPath(); ctx.moveTo(cueStartX, cueStartY); ctx.lineTo(cueEndX, cueEndY);
+                    ctx.lineWidth = 5; ctx.strokeStyle = '#d2691e'; ctx.stroke();
+
+                    ctx.beginPath(); ctx.moveTo(cueStartX, cueStartY);
+                    ctx.lineTo(cueBall.x - Math.cos(angle) * (cueOffset + 15), cueBall.y - Math.sin(angle) * (cueOffset + 15));
+                    ctx.lineWidth = 4; ctx.strokeStyle = '#fff8e7'; ctx.stroke();
+                }
+            }
+
+            // 6. Vẽ thanh tụ lực của người chơi
+            if (isCharging) {
+                let barW = (power / maxPower) * 200;
+                ctx.fillStyle = '#333'; ctx.fillRect(300, 370, 200, 15);
+                ctx.fillStyle = '#ff5722'; ctx.fillRect(300, 370, barW, 15);
+            }
+        }
+
+        resetTable();
+    </script>
+</body>
+</html>

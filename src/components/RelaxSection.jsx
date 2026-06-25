@@ -1,9 +1,123 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from './Icons';
 
+// Danh sách 11 game từ thư mục public/Game
+const GAMES = [
+  {
+    id: 'banvit',
+    title: 'Bắn Vịt Cổ Điển',
+    desc: 'Trò chơi bắn vịt cổ điển, thử thách tài thiện xạ và phản xạ nhanh nhạy của bạn.',
+    path: '/Game/banvit_new.html',
+    tag: 'Phản xạ • Bắn súng',
+    color: 'var(--color-warning)',
+    icon: 'Award',
+    bg: 'rgba(245, 158, 11, 0.15)',
+  },
+  {
+    id: 'bida',
+    title: 'Bi-a Thể Thao',
+    desc: 'Trò chơi bi-a hấp dẫn, rèn luyện kỹ năng ngắm bắn chuẩn xác và tính toán góc bóng.',
+    path: '/Game/Bida.html',
+    tag: 'Trí tuệ • Khéo léo',
+    color: 'var(--color-primary)',
+    icon: 'Network',
+    bg: 'rgba(99, 102, 241, 0.15)',
+  },
+  {
+    id: 'ca_be',
+    title: 'Cá Lớn Nuốt Cá Bé',
+    desc: 'Điều khiển chú cá nhỏ ăn các loài cá bé hơn để sinh tồn và phát triển đại dương.',
+    path: '/Game/ca_be.html',
+    tag: 'Kịch tính • Sinh tồn',
+    color: 'var(--color-secondary)',
+    icon: 'Globe',
+    bg: 'rgba(14, 165, 233, 0.15)',
+  },
+  {
+    id: 'caro',
+    title: 'Cờ Caro Trí Tuệ',
+    desc: 'Trò chơi cờ caro kinh điển đòi hỏi tư duy chiến thuật đỉnh cao để chiến thắng đối thủ.',
+    path: '/Game/Caro.html',
+    tag: 'Trí tuệ • Chiến thuật',
+    color: 'var(--color-warning)',
+    icon: 'Plus',
+    bg: 'rgba(245, 158, 11, 0.15)',
+  },
+  {
+    id: 'contra',
+    title: 'Huyền Thoại Contra',
+    desc: 'Game đi ải hành động Retro siêu kinh điển gắn liền với ký ức tuổi thơ dữ dội.',
+    path: '/Game/Contra.html',
+    tag: 'Hành động • Retro',
+    color: 'var(--color-primary)',
+    icon: 'Terminal',
+    bg: 'rgba(99, 102, 241, 0.15)',
+  },
+  {
+    id: 'covua',
+    title: 'Cờ Vua Đối Kháng',
+    desc: 'Thử thách trí tuệ đỉnh cao với bộ môn cờ vua quốc tế, đấu trí căng thẳng.',
+    path: '/Game/Covua.html',
+    tag: 'Trí tuệ • Đấu trí',
+    color: 'var(--color-secondary)',
+    icon: 'Cpu',
+    bg: 'rgba(14, 165, 233, 0.15)',
+  },
+  {
+    id: 'daovang',
+    title: 'Đào Vàng Cổ Điển',
+    desc: 'Kéo vàng, kim cương và vượt qua mục tiêu điểm số trong khoảng thời gian giới hạn.',
+    path: '/Game/Daovang.html',
+    tag: 'Kinh điển • Khéo léo',
+    color: 'var(--color-warning)',
+    icon: 'Database',
+    bg: 'rgba(245, 158, 11, 0.15)',
+  },
+  {
+    id: 'duaxe',
+    title: 'Đua Xe Tốc Độ',
+    desc: 'Lái siêu xe vượt qua mọi chướng ngại vật trên đường đua nghẹt thở kịch tính.',
+    path: '/Game/Duaxe.html',
+    tag: 'Tốc độ • Phản xạ',
+    color: 'var(--color-primary)',
+    icon: 'ChevronRight',
+    bg: 'rgba(99, 102, 241, 0.15)',
+  },
+  {
+    id: 'flappybird',
+    title: 'Flappy Bird',
+    desc: 'Điều khiển chú chim Flappy vượt qua các chướng ngại vật đường ống đầy thách thức.',
+    path: '/Game/FlappyBird.html',
+    tag: 'Kiên nhẫn • Giải trí',
+    color: 'var(--color-secondary)',
+    icon: 'Globe',
+    bg: 'rgba(14, 165, 233, 0.15)',
+  },
+  {
+    id: 'khunglong',
+    title: 'Khủng Long T-Rex',
+    desc: 'Trò chơi khủng long chạy bộ nhảy qua xương rồng và tránh rồng bay kinh điển.',
+    path: '/Game/Khunglong.html',
+    tag: 'Kinh điển • Vô tận',
+    color: 'var(--color-warning)',
+    icon: 'Terminal',
+    bg: 'rgba(245, 158, 11, 0.15)',
+  },
+  {
+    id: 'lathinh',
+    title: 'Lật Hình Trí Nhớ',
+    desc: 'Rèn luyện trí nhớ bằng cách lật tìm các hình ảnh cặp đôi giống nhau trong thời gian ngắn.',
+    path: '/Game/Lathinh.html',
+    tag: 'Trí tuệ • Trí nhớ',
+    color: 'var(--color-primary)',
+    icon: 'BookOpenCheck',
+    bg: 'rgba(99, 102, 241, 0.15)',
+  }
+];
+
 export default function RelaxSection() {
   const [subTab, setSubTab] = useState('game'); // 'game', 'clips'
-  const [activeGame, setActiveGame] = useState(null); // null, 'santrungvang', 'memory', 'snake'
+  const [activeGame, setActiveGame] = useState(null); // null, game_id
 
   return (
     <div className="relax-section">
@@ -35,56 +149,29 @@ export default function RelaxSection() {
         <div style={{ marginTop: '24px' }}>
           {!activeGame ? (
             <div className="topics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-              {/* Game 1 Card: Săn Trứng Vàng */}
-              <div 
-                className="glass-card interactive" 
-                onClick={() => setActiveGame('santrungvang')}
-                style={{ borderTop: '4px solid var(--color-warning)' }}
-              >
-                <div className="topic-icon-wrapper" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)' }}>
-                  <Icon name="Award" style={{ width: '28px', height: '28px', color: 'var(--color-warning)' }} />
+              {GAMES.map(game => (
+                <div 
+                  key={game.id}
+                  className="glass-card interactive" 
+                  onClick={() => setActiveGame(game.id)}
+                  style={{ borderTop: `4px solid ${game.color}`, display: 'flex', flexDirection: 'column', height: '100%' }}
+                >
+                  <div className="topic-icon-wrapper" style={{ backgroundColor: game.bg }}>
+                    <Icon name={game.icon} style={{ width: '28px', height: '28px', color: game.color }} />
+                  </div>
+                  <h3 className="topic-title">{game.title}</h3>
+                  <p className="topic-desc" style={{ flexGrow: 1 }}>{game.desc}</p>
+                  <div className="topic-footer" style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                    <span>{game.tag}</span>
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      style={{ backgroundColor: game.color, color: '#fff', borderColor: game.color }}
+                    >
+                      Chơi ngay
+                    </button>
+                  </div>
                 </div>
-                <h3 className="topic-title">Săn Trứng Vàng</h3>
-                <p className="topic-desc">Huyền thoại game Săn Trứng Vàng kinh điển. Chơi trực tiếp trên màn hình rộng hoặc chế độ phóng to toàn màn hình cực đỉnh.</p>
-                <div className="topic-footer">
-                  <span>Kinh điển • Vui nhộn</span>
-                  <button className="btn btn-primary btn-sm" style={{ backgroundColor: 'var(--color-warning)', color: '#fff', borderColor: 'var(--color-warning)' }}>Chơi ngay</button>
-                </div>
-              </div>
-
-              {/* Game 2 Card: Khớp Thẻ */}
-              <div 
-                className="glass-card interactive" 
-                onClick={() => setActiveGame('memory')}
-                style={{ borderTop: '4px solid var(--color-primary)' }}
-              >
-                <div className="topic-icon-wrapper" style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)' }}>
-                  <Icon name="Cpu" style={{ width: '28px', height: '28px', color: 'var(--color-primary)' }} />
-                </div>
-                <h3 className="topic-title">Khớp Thẻ Công Nghệ</h3>
-                <p className="topic-desc">Trò chơi lật thẻ rèn luyện trí nhớ. Tìm các cặp biểu tượng phần cứng, mạng và cơ sở dữ liệu giống nhau.</p>
-                <div className="topic-footer">
-                  <span>Trí tuệ • Nhẹ nhàng</span>
-                  <button className="btn btn-primary btn-sm">Chơi ngay</button>
-                </div>
-              </div>
-
-              {/* Game 3 Card: Rắn Săn Mồi */}
-              <div 
-                className="glass-card interactive" 
-                onClick={() => setActiveGame('snake')}
-                style={{ borderTop: '4px solid var(--color-secondary)' }}
-              >
-                <div className="topic-icon-wrapper" style={{ backgroundColor: 'rgba(14, 165, 233, 0.15)' }}>
-                  <Icon name="Terminal" style={{ width: '28px', height: '28px', color: 'var(--color-secondary)' }} />
-                </div>
-                <h3 className="topic-title">Rắn Săn Mồi Neon</h3>
-                <p className="topic-desc">Điều khiển chú rắn ăn các bit dữ liệu 0 và 1 trên màn hình thiết bị đầu cuối để lớn lên. Tránh đụng tường!</p>
-                <div className="topic-footer">
-                  <span>Phản xạ • Cổ điển</span>
-                  <button className="btn btn-secondary btn-sm" style={{ backgroundColor: 'var(--color-secondary)', color: '#fff', borderColor: 'var(--color-secondary)' }}>Chơi ngay</button>
-                </div>
-              </div>
+              ))}
             </div>
           ) : (
             <div>
@@ -97,9 +184,9 @@ export default function RelaxSection() {
                 <span>Quay lại kho game</span>
               </button>
 
-              {activeGame === 'santrungvang' && <SanTrungVangGame />}
-              {activeGame === 'memory' && <MemoryMatchGame />}
-              {activeGame === 'snake' && <SnakeGame />}
+              <GamePlayer 
+                game={GAMES.find(g => g.id === activeGame)} 
+              />
             </div>
           )}
         </div>
@@ -110,11 +197,21 @@ export default function RelaxSection() {
   );
 }
 
-/* ==================== RUFFLE FLASH GAME ==================== */
-function SanTrungVangGame() {
+/* ==================== GAME PLAYER COMPONENT ==================== */
+const getGameUrl = (path) => {
+  if (!path) return '';
+  const base = import.meta.env.BASE_URL || "/";
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanUrl = path.startsWith('/') ? path.slice(1) : path;
+  return `${cleanBase}${cleanUrl}`;
+};
+
+function GamePlayer({ game }) {
   const containerRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const gameUrl = getGameUrl(game.path);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -178,7 +275,7 @@ function SanTrungVangGame() {
     left: 0,
     width: '100vw',
     height: '100vh',
-    backgroundColor: 'var(--bg-main)',
+    backgroundColor: 'var(--bg-main, #0f172a)',
     zIndex: 99999,
     display: 'flex',
     flexDirection: 'column',
@@ -188,7 +285,7 @@ function SanTrungVangGame() {
     margin: 0,
     padding: 0
   } : {
-    maxWidth: '900px',
+    maxWidth: '1000px',
     margin: '0 auto',
     position: 'relative'
   };
@@ -205,20 +302,24 @@ function SanTrungVangGame() {
         alignItems: 'center',
         padding: isFullscreen ? '16px 24px' : '0 0 16px 0',
         borderBottom: isFullscreen ? '1px solid var(--border-color)' : 'none',
-        backgroundColor: isFullscreen ? 'var(--bg-nav)' : 'transparent',
+        backgroundColor: isFullscreen ? 'var(--bg-nav, #1e293b)' : 'transparent',
+        flexWrap: 'wrap',
+        gap: '12px'
       }}>
-        <div style={{ textAlign: 'left' }}>
-          <h3 style={{ fontSize: isFullscreen ? '1.35rem' : '1.5rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🥚 Săn Trứng Vàng
+        <div style={{ textAlign: 'left', flex: '1 1 300px' }}>
+          <h3 style={{ fontSize: isFullscreen ? '1.25rem' : '1.5rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name={game.icon} style={{ color: game.color, width: '24px', height: '24px' }} />
+            {game.title}
           </h3>
           {!isFullscreen && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px', textAlign: 'left' }}>
-              Trải nghiệm game Săn Trứng Vàng kinh điển trực tiếp trong trình duyệt.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px', textAlign: 'left', margin: '4px 0 0 0' }}>
+              {game.desc}
             </p>
           )}
         </div>
         
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+
           <button 
             className="btn btn-primary btn-sm"
             onClick={toggleFullscreen}
@@ -267,378 +368,20 @@ function SanTrungVangGame() {
             color: 'var(--text-muted)',
             zIndex: 10
           }}>
-            <div className="pulse-button" style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', marginBottom: '16px' }}>
-              🥚
+            <div className="pulse-button" style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: game.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', marginBottom: '16px' }}>
+              🎮
             </div>
-            <span>Đang tải game Săn Trứng Vàng...</span>
+            <span>Đang tải game {game.title}...</span>
           </div>
         )}
         <iframe
-          src="https://socvui.com/san-trung-vang.html"
-          title="Săn Trứng Vàng"
+          src={gameUrl}
+          title={game.title}
           style={{ width: '100%', height: '100%', border: 'none' }}
           allowFullScreen
           onLoad={() => setLoading(false)}
         />
       </div>
-    </div>
-  );
-}
-
-/* ==================== MEMORY MATCH GAME ==================== */
-function MemoryMatchGame() {
-  const iconsList = ['Cpu', 'Network', 'Globe', 'Database', 'Terminal', 'MessageSquare', 'Briefcase', 'BookOpen'];
-  const [cards, setCards] = useState([]);
-  const [flippedCards, setFlippedCards] = useState([]);
-  const [matchedPairs, setMatchedPairs] = useState([]);
-  const [moves, setMoves] = useState(0);
-  const [gameWon, setGameWon] = useState(false);
-
-  const initGame = () => {
-    const doubleIcons = [...iconsList, ...iconsList];
-    const shuffled = doubleIcons
-      .map((icon, index) => ({ id: index, icon, isFlipped: false, isMatched: false }))
-      .sort(() => Math.random() - 0.5);
-    setCards(shuffled);
-    setFlippedCards([]);
-    setMatchedPairs([]);
-    setMoves(0);
-    setGameWon(false);
-  };
-
-  useEffect(() => {
-    initGame();
-  }, []);
-
-  const handleCardClick = (id) => {
-    if (flippedCards.length === 2 || matchedPairs.includes(id) || flippedCards.includes(id)) return;
-
-    const newFlipped = [...flippedCards, id];
-    setFlippedCards(newFlipped);
-
-    if (newFlipped.length === 2) {
-      setMoves(prev => prev + 1);
-      const firstCard = cards.find(c => c.id === newFlipped[0]);
-      const secondCard = cards.find(c => c.id === newFlipped[1]);
-
-      if (firstCard.icon === secondCard.icon) {
-        setMatchedPairs(prev => [...prev, firstCard.id, secondCard.id]);
-        setFlippedCards([]);
-        
-        if (matchedPairs.length + 2 === cards.length) {
-          setGameWon(true);
-        }
-      } else {
-        setTimeout(() => {
-          setFlippedCards([]);
-        }, 1000);
-      }
-    }
-  };
-
-  return (
-    <div className="glass-card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-      <h3 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Khớp Thẻ Công Nghệ</h3>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Lượt đi: <strong>{moves}</strong> | Cặp đã tìm: <strong>{matchedPairs.length / 2} / 8</strong></p>
-
-      {gameWon ? (
-        <div style={{ padding: '30px 0' }}>
-          <h4 style={{ color: 'var(--color-success)', fontSize: '1.8rem', fontWeight: 800, marginBottom: '12px' }}>🎉 CHIẾN THẮNG!</h4>
-          <p style={{ marginBottom: '24px' }}>Bạn đã hoàn thành trò chơi trong <strong>{moves}</strong> lượt lật thẻ.</p>
-          <button className="btn btn-primary" onClick={initGame}>Chơi lại</button>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '12px',
-          maxWidth: '400px',
-          margin: '0 auto'
-        }}>
-          {cards.map(card => {
-            const isFlipped = flippedCards.includes(card.id) || matchedPairs.includes(card.id);
-            return (
-              <div 
-                key={card.id}
-                onClick={() => handleCardClick(card.id)}
-                style={{
-                  aspectRatio: '1',
-                  backgroundColor: isFlipped ? 'var(--bg-active)' : 'var(--bg-card-hover)',
-                  border: isFlipped 
-                    ? (matchedPairs.includes(card.id) ? '2px solid var(--color-success)' : '2px solid var(--color-primary)') 
-                    : '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transform: isFlipped ? 'rotateY(180deg)' : 'none',
-                  transition: 'transform 0.3s ease, border-color 0.3s ease',
-                  boxShadow: isFlipped && matchedPairs.includes(card.id) ? '0 0 10px rgba(16, 185, 129, 0.2)' : 'none'
-                }}
-              >
-                {isFlipped ? (
-                  <div style={{ transform: 'rotateY(180deg)' }}>
-                    <Icon 
-                      name={card.icon} 
-                      style={{ 
-                        width: '32px', 
-                        height: '32px', 
-                        color: matchedPairs.includes(card.id) ? 'var(--color-success)' : 'var(--color-primary)' 
-                      }} 
-                    />
-                  </div>
-                ) : (
-                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--text-muted)' }}>?</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <button className="btn btn-secondary" onClick={initGame} style={{ marginTop: '24px' }}>
-        Tải lại bảng
-      </button>
-    </div>
-  );
-}
-
-/* ==================== RETRO SNAKE GAME ==================== */
-function SnakeGame() {
-  const canvasRef = useRef(null);
-  const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem('snake_highscore') || '0'));
-  const [gameOver, setGameOver] = useState(false);
-  const [isStarted, setIsStarted] = useState(false);
-
-  const GRID_SIZE = 20;
-  const CANVAS_WIDTH = 400;
-  const CANVAS_HEIGHT = 400;
-
-  const snakeRef = useRef([{ x: 200, y: 200 }]);
-  const directionRef = useRef({ x: 0, y: -GRID_SIZE });
-  const foodRef = useRef({ x: 0, y: 0 });
-  const foodBitRef = useRef('1');
-  const isStartedRef = useRef(false);
-
-  const getNewFoodPosition = (snake) => {
-    let newFood;
-    while (true) {
-      newFood = {
-        x: Math.floor(Math.random() * (CANVAS_WIDTH / GRID_SIZE)) * GRID_SIZE,
-        y: Math.floor(Math.random() * (CANVAS_HEIGHT / GRID_SIZE)) * GRID_SIZE,
-      };
-      const insideSnake = snake.some(part => part.x === newFood.x && part.y === newFood.y);
-      if (!insideSnake) break;
-    }
-    return newFood;
-  };
-
-  const initGame = () => {
-    snakeRef.current = [
-      { x: 200, y: 200 },
-      { x: 200, y: 220 },
-      { x: 200, y: 240 }
-    ];
-    directionRef.current = { x: 0, y: -GRID_SIZE };
-    foodRef.current = getNewFoodPosition(snakeRef.current);
-    foodBitRef.current = Math.random() > 0.5 ? '1' : '0';
-    setScore(0);
-    setGameOver(false);
-    setIsStarted(false);
-    isStartedRef.current = false;
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code) && directionRef.current.y === 0) {
-        directionRef.current = { x: 0, y: -GRID_SIZE };
-        startOnKey();
-      } else if (['ArrowDown', 'KeyS'].includes(e.code) && directionRef.current.y === 0) {
-        directionRef.current = { x: 0, y: GRID_SIZE };
-        startOnKey();
-      } else if (['ArrowLeft', 'KeyA'].includes(e.code) && directionRef.current.x === 0) {
-        directionRef.current = { x: -GRID_SIZE, y: 0 };
-        startOnKey();
-      } else if (['ArrowRight', 'KeyD'].includes(e.code) && directionRef.current.x === 0) {
-        directionRef.current = { x: GRID_SIZE, y: 0 };
-        startOnKey();
-      }
-    };
-
-    const startOnKey = () => {
-      if (!isStartedRef.current && !gameOver) {
-        setIsStarted(true);
-        isStartedRef.current = true;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameOver]);
-
-  useEffect(() => {
-    initGame();
-  }, []);
-
-  useEffect(() => {
-    if (!isStarted || gameOver) return;
-
-    const gameTick = () => {
-      const snake = [...snakeRef.current];
-      const direction = directionRef.current;
-      const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
-
-      if (head.x < 0 || head.x >= CANVAS_WIDTH || head.y < 0 || head.y >= CANVAS_HEIGHT) {
-        handleGameOver();
-        return;
-      }
-
-      const selfCollide = snake.some(part => part.x === head.x && part.y === head.y);
-      if (selfCollide) {
-        handleGameOver();
-        return;
-      }
-
-      snake.unshift(head);
-
-      if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
-        setScore(prev => {
-          const next = prev + 10;
-          if (next > highScore) {
-            setHighScore(next);
-            localStorage.setItem('snake_highscore', next.toString());
-          }
-          return next;
-        });
-        foodRef.current = getNewFoodPosition(snake);
-        foodBitRef.current = Math.random() > 0.5 ? '1' : '0';
-      } else {
-        snake.pop();
-      }
-
-      snakeRef.current = snake;
-      drawGame();
-    };
-
-    const handleGameOver = () => {
-      setGameOver(true);
-      setIsStarted(false);
-      isStartedRef.current = false;
-    };
-
-    const drawGame = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < CANVAS_WIDTH; i += GRID_SIZE) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, CANVAS_HEIGHT);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(CANVAS_WIDTH, i);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = '#0ea5e9';
-      ctx.font = 'bold 16px Courier New';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#0ea5e9';
-      ctx.shadowBlur = 10;
-      ctx.fillText(foodBitRef.current, foodRef.current.x + GRID_SIZE/2, foodRef.current.y + GRID_SIZE/2);
-
-      ctx.shadowColor = '#6366f1';
-      ctx.shadowBlur = 8;
-      snakeRef.current.forEach((part, index) => {
-        ctx.fillStyle = index === 0 ? '#818cf8' : '#6366f1';
-        ctx.beginPath();
-        ctx.roundRect(part.x + 1, part.y + 1, GRID_SIZE - 2, GRID_SIZE - 2, 4);
-        ctx.fill();
-      });
-
-      ctx.shadowBlur = 0;
-    };
-
-    const intervalId = setInterval(gameTick, 100);
-    return () => clearInterval(intervalId);
-  }, [isStarted, gameOver]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '16px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Nhấn bất kỳ nút di chuyển nào để bắt đầu!', CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
-  }, [gameOver]);
-
-  const changeDir = (x, y) => {
-    if (!isStarted && !gameOver) {
-      setIsStarted(true);
-      isStartedRef.current = true;
-    }
-    const currentDir = directionRef.current;
-    if (x !== 0 && currentDir.x === 0) directionRef.current = { x, y: 0 };
-    if (y !== 0 && currentDir.y === 0) directionRef.current = { x: 0, y };
-  };
-
-  return (
-    <div className="glass-card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-      <h3 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Rắn Săn Mồi Neon</h3>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>Điểm: <strong style={{ color: 'var(--color-secondary)' }}>{score}</strong> | Kỷ lục: <strong>{highScore}</strong></p>
-
-      <div style={{ position: 'relative', width: '400px', height: '400px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
-
-        {gameOver && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backdropFilter: 'blur(4px)'
-          }}>
-            <h4 style={{ color: 'var(--color-danger)', fontSize: '2rem', fontWeight: 800, marginBottom: '8px' }}>GAME OVER</h4>
-            <p style={{ color: '#fff', marginBottom: '20px' }}>Số điểm đạt được: <strong style={{ color: 'var(--color-secondary)' }}>{score}</strong></p>
-            <button className="btn btn-primary" onClick={initGame}>Chơi lại</button>
-          </div>
-        )}
-      </div>
-
-      <div style={{
-        marginTop: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '6px'
-      }}>
-        <button className="btn btn-secondary btn-icon" onClick={() => changeDir(0, -GRID_SIZE)} style={{ width: '44px', height: '44px' }}>▲</button>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <button className="btn btn-secondary btn-icon" onClick={() => changeDir(-GRID_SIZE, 0)} style={{ width: '44px', height: '44px' }}>◀</button>
-          <button className="btn btn-secondary btn-icon" onClick={() => changeDir(GRID_SIZE, 0)} style={{ width: '44px', height: '44px' }}>▶</button>
-        </div>
-        <button className="btn btn-secondary btn-icon" onClick={() => changeDir(0, GRID_SIZE)} style={{ width: '44px', height: '44px' }}>▼</button>
-      </div>
-
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '16px' }}>Sử dụng phím mũi tên hoặc nút W/A/S/D trên bàn phím để chơi nhanh.</p>
     </div>
   );
 }

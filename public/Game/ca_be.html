@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Cá Lớn Nuốt Cá Bé - Ocean Frenzy</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a192f;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 900px;
+            height: 550px;
+            /* Hiệu ứng nền đại dương xanh thẳm lung linh */
+            background: linear-gradient(to bottom, #1ca7ec 0%, #1f2d5a 100%);
+            border: 4px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            overflow: hidden;
+            cursor: none; /* Ẩn con trỏ chuột mặc định để thay bằng chú cá */
+        }
+
+        /* Thanh thông tin UI */
+        #ui-layer {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 25px;
+            box-sizing: border-box;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        #ui-layer span {
+            color: #ffd700;
+            font-size: 22px;
+        }
+
+        /* Bong bóng nước trang trí */
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp 6s infinite linear;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(600px) translateX(0); opacity: 0; }
+            50% { opacity: 0.7; }
+            100% { transform: translateY(-50px) translateX(20px); opacity: 0; }
+        }
+
+        /* ĐỐI TƯỢNG CÁ TRÊN CANVAS / MÀN HÌNH */
+        .fish {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: transform 0.1s ease-out, width 0.3s, height 0.3s;
+            pointer-events: none;
+        }
+
+        /* Quay đầu cá sang trái/phải */
+        .face-left {
+            transform: scaleX(-1);
+        }
+
+        /* MÀN HÌNH CHỨC NĂNG */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 25, 47, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 20;
+            cursor: default;
+        }
+
+        .screen h1 {
+            font-size: 42px;
+            color: #00b4d8;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        button {
+            padding: 12px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #0077b6;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 5px 15px rgba(0, 119, 182, 0.4);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background-color: #0096c7;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div>ĐIỂM: <span id="txt-score">0</span></div>
+            <div>CẤP ĐỘ CƠ THỂ: <span id="txt-size-level">Nhi Đồng (Cấp 1)</span></div>
+            <div>TIẾN HÓA CÒN: <span id="txt-evolve">5 con</span></div>
+        </div>
+
+        <div id="player-fish" class="fish" style="font-size: 24px; z-index: 5; left: 400px; top: 250px; width: 40px; height: 30px;">🐠</div>
+
+        <div id="start-screen" class="screen">
+            <h1>OCEAN FRENZY</h1>
+            <p style="color: #cae9ff; margin-bottom: 25px; text-align: center; max-width: 500px;">
+                Di chuyển chuột để điều khiển cá vàng. Nuốt chửng các loài cá nhỏ hơn để lớn lên, tránh xa các hung thần đại dương lớn hơn bạn!
+            </p>
+            <button onclick="startGame()">Bắt đầu sinh tồn</button>
+        </div>
+
+        <div id="gameover-screen" class="screen" style="display: none;">
+            <h1 style="color: #ef4444;">BẠN ĐÃ BỊ NUỐT CHỬNG!</h1>
+            <p>Số cá đã săn được: <span id="final-score" style="color: #ffd700; font-weight: bold; font-size: 24px;">0</span></p>
+            <button onclick="startGame()">Thử lại ván mới</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player-fish');
+        const scoreTxt = document.getElementById('txt-score');
+        const sizeLevelTxt = document.getElementById('txt-size-level');
+        const evolveTxt = document.getElementById('txt-evolve');
+        
+        const startScreen = document.getElementById('start-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+
+        // Định nghĩa cấu trúc 3 Cấp bậc tiến hóa của người chơi
+        const PLAYER_LEVELS = [
+            { level: 1, name: "Nhi Đồng (Cấp 1)", emoji: "🐠", width: 40,  height: 30,  canEat: [1] },
+            { level: 2, name: "Trưởng Thành (Cấp 2)", emoji: "🐟", width: 75,  height: 55,  canEat: [1, 2] },
+            { level: 3, name: "Hung Thần (Cấp 3)", emoji: "🐬", width: 120, height: 90,  canEat: [1, 2, 3] }
+        ];
+
+        // Định nghĩa 3 loại cá máy bơi ngẫu nhiên trên biển
+        const FISH_TYPES = [
+            { type: 1, emoji: "🐠", width: 35,  height: 25,  scoreValue: 10 },  // Cá bé màu vàng
+            { type: 2, emoji: "🐟", width: 70,  height: 50,  scoreValue: 30 },  // Cá trung bình màu xanh
+            { type: 3, emoji: "🦈", width: 160, height: 110, scoreValue: 100 }  // Cá mập siêu to khổng lồ
+        ];
+
+        let score = 0;
+        let fishEatenCount = 0; // Số cá đã ăn ở cấp độ hiện tại để tính tiến hóa
+        let currentLevelIndex = 0;
+        let isGameOver = true;
+        
+        let playerX = 450;
+        let playerY = 275;
+        let targetX = 450;
+        let targetY = 275;
+
+        let enemyFishes = [];
+        let gameInterval;
+        let spawnTimer = 0;
+
+        // Tạo bong bóng nước bay lên ngẫu nhiên làm nền sinh động
+        function createBubbles() {
+            for (let i = 0; i < 15; i++) {
+                const b = document.createElement('div');
+                b.classList.add('bubble');
+                let size = Math.random() * 12 + 4;
+                b.style.width = size + 'px';
+                b.style.height = size + 'px';
+                b.style.left = Math.random() * 850 + 'px';
+                b.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(b);
+            }
+        }
+
+        // KHỞI ĐỘNG TRÒ CHƠI
+        function startGame() {
+            score = 0;
+            fishEatenCount = 0;
+            currentLevelIndex = 0;
+            
+            // Xóa sạch cá máy cũ
+            enemyFishes.forEach(f => f.el.remove());
+            enemyFishes = [];
+
+            // Thiết lập trạng thái cá người chơi ban đầu
+            updatePlayerSpecs();
+            scoreTxt.innerText = score;
+            
+            startScreen.style.display = 'none';
+            gameoverScreen.style.display = 'none';
+            isGameOver = false;
+
+            // Chạy vòng lặp game 60 FPS
+            clearInterval(gameInterval);
+            gameInterval = setInterval(updateGame, 1000 / 60);
+        }
+
+        // CẬP NHẬT KÍCH THƯỚC VÀ HÌNH DÁNG THEO CẤP ĐỘ TIẾN HÓA
+        function updatePlayerSpecs() {
+            let specs = PLAYER_LEVELS[currentLevelIndex];
+            player.innerText = specs.emoji;
+            player.style.width = specs.width + 'px';
+            player.style.height = specs.height + 'px';
+            player.style.fontSize = (specs.height * 0.8) + 'px';
+            
+            sizeLevelTxt.innerText = specs.name;
+            
+            if (currentLevelIndex < PLAYER_LEVELS.length - 1) {
+                let needed = 5 - fishEatenCount;
+                evolveTxt.innerText = `${needed} con`;
+            } else {
+                evolveTxt.innerText = "MAX (Vô địch)";
+            }
+        }
+
+        // THEO DÕI TỌA ĐỘ CHUỘT ĐỂ DI CHUYỂN CÁ
+        container.addEventListener('mousemove', function(e) {
+            if (isGameOver) return;
+            let rect = container.getBoundingClientRect();
+            targetX = e.clientX - rect.left;
+            targetY = e.clientY - rect.top;
+        });
+
+        // SINH RA CÁ MÁY NGẪU NHIÊN BƠI NGANG MÀN HÌNH
+        function spawnEnemyFish() {
+            if (isGameOver) return;
+
+            // Tỷ lệ xuất hiện ngẫu nhiên: 60% cá bé, 30% cá trung, 10% cá mập
+            let rand = Math.random();
+            let chosenType;
+            if (rand < 0.6) chosenType = FISH_TYPES[0];
+            else if (rand < 0.9) chosenType = FISH_TYPES[1];
+            else chosenType = FISH_TYPES[2];
+
+            const el = document.createElement('div');
+            el.classList.add('fish');
+            el.innerText = chosenType.emoji;
+            el.style.width = chosenType.width + 'px';
+            el.style.height = chosenType.height + 'px';
+            el.style.fontSize = (chosenType.height * 0.8) + 'px';
+
+            // Quyết định bơi từ trái sang phải hay từ phải sang trái
+            let fromLeft = Math.random() > 0.5;
+            let startX = fromLeft ? -chosenType.width : 900;
+            let startY = Math.random() * (500 - 60) + 40; // Tránh tràn lên thanh UI trên cùng
+            
+            let speed = Math.random() * 2 + 1.5; // Tốc độ bơi ngẫu nhiên
+            let vx = fromLeft ? speed : -speed;
+
+            if (vx < 0) {
+                el.classList.add('face-left'); // Quay đầu nếu bơi sang trái
+            }
+
+            el.style.left = startX + 'px';
+            el.style.top = startY + 'px';
+            container.appendChild(el);
+
+            enemyFishes.push({
+                el: el,
+                x: startX,
+                y: startY,
+                vx: vx,
+                width: chosenType.width,
+                height: chosenType.height,
+                type: chosenType.type,
+                scoreValue: chosenType.scoreValue
+            });
+        }
+
+        // VÒNG LẶP LOGIC GAME CHÍNH (LOOP)
+        function updateGame() {
+            if (isGameOver) return;
+
+            // 1. Tạo hiệu ứng di chuyển mượt mà (Easing) cho cá người chơi đuổi theo con trỏ chuột
+            let dx = targetX - playerX;
+            let dy = targetY - playerY;
+            
+            // Xử lý quay đầu cho cá người chơi
+            if (dx < -5) player.classList.add('face-left');
+            if (dx > 5) player.classList.remove('face-left');
+
+            playerX += dx * 0.1; // Tỉ lệ đuổi theo càng lớn bơi càng nhanh
+            playerY += dy * 0.1;
+
+            // Giới hạn không cho cá người chơi bơi vượt ra khỏi khung biên đại dương
+            let currentSpecs = PLAYER_LEVELS[currentLevelIndex];
+            playerX = Math.max(0, Math.min(900 - currentSpecs.width, playerX));
+            playerY = Math.max(40, Math.min(550 - currentSpecs.height, playerY));
+
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+
+            // 2. Định kỳ sinh cá máy mới (khoảng 1.2 giây một con)
+            spawnTimer++;
+            if (spawnTimer >= 70) {
+                if (enemyFishes.length < 12) {
+                    spawnEnemyFish();
+                }
+                spawnTimer = 0;
+            }
+
+            // 3. Cập nhật vị trí di chuyển cá máy và kiểm tra va chạm nuốt nhau
+            let pRect = {
+                x: playerX,
+                y: playerY,
+                w: currentSpecs.width,
+                h: currentSpecs.height
+            };
+
+            for (let i = enemyFishes.length - 1; i >= 0; i--) {
+                let f = enemyFishes[i];
+                f.x += f.vx;
+                f.el.style.left = f.x + 'px';
+
+                // Xóa cá máy nếu bơi khuất hẳn khỏi màn hình biên
+                if ((f.vx > 0 && f.x > 900) || (f.vx < 0 && f.x < -f.width)) {
+                    f.el.remove();
+                    enemyFishes.splice(i, 1);
+                    continue;
+                }
+
+                // THUẬT TOÁN VA CHẠM HỘP GIỚI HẠN (AABB Collision Detection)
+                if (pRect.x < f.x + f.width &&
+                    pRect.x + pRect.w > f.x &&
+                    pRect.y < f.y + f.height &&
+                    pRect.y + pRect.h > f.y) {
+                    
+                    // Xử lý phân cấp kích thước: Ai to hơn người đó thắng!
+                    if (currentSpecs.canEat.includes(f.type)) {
+                        // Người chơi TO HƠN hoặc BẰNG -> Nuốt cá máy
+                        f.el.remove();
+                        enemyFishes.splice(i, 1);
+                        
+                        score += f.scoreValue;
+                        scoreTxt.innerText = score;
+
+                        // Xử lý tính toán chuỗi Tiến Hóa Cơ Thể
+                        if (currentLevelIndex < PLAYER_LEVELS.length - 1) {
+                            fishEatenCount++;
+                            if (fishEatenCount >= 5) { // Ăn đủ 5 con tự động tiến hóa cấp tiếp theo
+                                currentLevelIndex++;
+                                fishEatenCount = 0;
+                            }
+                        }
+                        updatePlayerSpecs();
+                    } else {
+                        // Cá máy TO HƠN -> Người chơi bị nuốt chửng!
+                        triggerGameOver();
+                        return;
+                    }
+                }
+            }
+        }
+
+        // KẾT THÚC GAME TRẬN ĐẤU
+        function triggerGameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            document.getElementById('final-score').innerText = score;
+            gameoverScreen.style.display = 'flex';
+        }
+
+        // Tạo sẵn các hạt bong bóng nước khi load trang
+        createBubbles();
+    </script>
+</body>
+</html>

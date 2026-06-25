@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siêu Tốc Độ - Mật Độ Xe Tăng Dần</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 500px;
+            height: 600px;
+            background-color: #2e7d32; 
+            border: 4px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            overflow: hidden;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 25px;
+            box-sizing: border-box;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        #ui-layer span {
+            color: #ffd700;
+            font-size: 20px;
+        }
+
+        #stage-banner {
+            position: absolute;
+            top: 55px;
+            width: 100%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 9;
+        }
+
+        #turbo-alert {
+            position: absolute;
+            bottom: 130px;
+            width: 100%;
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: #ff3333;
+            text-shadow: 2px 2px 5px #000;
+            display: none;
+            z-index: 9;
+            animation: blink 0.15s infinite alternate;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.3; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        canvas {
+            display: block;
+            background-color: #444; 
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 17, 17, 0.88);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 20;
+        }
+
+        .screen h1 {
+            font-size: 34px;
+            color: #ff9800;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px #000;
+            text-align: center;
+        }
+
+        .screen p {
+            color: #ccc;
+            margin-bottom: 25px;
+            font-size: 16px;
+            text-align: center;
+            max-width: 420px;
+        }
+
+        button {
+            padding: 12px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background-color: #e65100;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div>VÒNG: <span id="txt-stage">1/5</span></div>
+            <div>THỜI GIAN: <span id="txt-time">30</span>s</div>
+            <div>ĐIỂM: <span id="txt-score">0</span></div>
+            <div>TỐC ĐỘ: <span id="txt-speed">0</span> km/h</div>
+        </div>
+
+        <div id="stage-banner">VÒNG 1: KHỞI HÀNH 🛣️</div>
+        <div id="turbo-alert">🔥 TURBO BOOST 🔥</div>
+
+        <canvas id="gameCanvas" width="500" height="600"></canvas>
+
+        <div id="start-screen" class="screen">
+            <h1>SIÊU TỐC ĐỘ: MẬT ĐỘ TĂNG TIẾN</h1>
+            <p>Càng về các vòng sau, số lượng xe cản đường xuất hiện sẽ càng đông đúc và dày đặc!</p>
+            <button onclick="startGame()">Bắt đầu đua</button>
+            <p style="font-size: 13px; color: #888; margin-top: 15px; line-height: 1.5; text-align: center;">
+                <b>Cách 1 (Chuột):</b> Rê chuột qua lại để rẽ lái. <b>Nhấn giữ chuột trái</b> để tăng tốc.<br>
+                <b>Cách 2 (Bàn phím):</b> Dùng phím phím <b>A/D</b> để rẽ. Nhấn giữ phím <b>W / LÊN</b> để tăng tốc.
+            </p>
+        </div>
+
+        <div id="next-stage-screen" class="screen" style="display: none;">
+            <h1 style="color: #4caf50;">VƯỢT VÒNG THÀNH CÔNG!</h1>
+            <p id="next-stage-desc"></p>
+            <button onclick="startNextStage()">Tiến vào vòng kế tiếp</button>
+        </div>
+
+        <div id="victory-screen" class="screen" style="display: none;">
+            <h1 style="color: #ffd700;">🏆 VÔ ĐỊCH ĐƯỜNG ĐUA 🏆</h1>
+            <p>Bạn đã xuất sắc vượt qua toàn bộ các vòng đua với mật độ xe dày đặc nhất!</p>
+            <p>Tổng điểm kỷ lục: <span id="victory-score" style="color: #ffd700; font-weight: bold;">0</span></p>
+            <button onclick="showStartScreen()">Quay lại Menu</button>
+        </div>
+
+        <div id="gameover-screen" class="screen" style="display: none;">
+            <h1 style="color: #f44336;">BỊ TAI NẠN LẬT XE!</h1>
+            <p>Thất bại tại vòng: <span id="fail-stage" style="color: #ff3333;">1</span></p>
+            <p>Số điểm đạt được: <span id="final-score" style="color: #ffd700; font-weight: bold;">0</span></p>
+            <button onclick="startGame()">Đua lại từ đầu</button>
+        </div>
+    </div>
+
+    <script {l-tiger}>
+        const container = document.getElementById('game-container');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scoreTxt = document.getElementById('txt-score');
+        const speedTxt = document.getElementById('txt-speed');
+        const timeTxt = document.getElementById('txt-time');
+        const stageTxt = document.getElementById('txt-stage');
+        const stageBanner = document.getElementById('stage-banner');
+        const turboAlert = document.getElementById('turbo-alert');
+
+        const startScreen = document.getElementById('start-screen');
+        const nextStageScreen = document.getElementById('next-stage-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+
+        // Cấu hình thông số Vòng đua & Mật độ xe địch tối đa (maxObstacles) tăng tiến dần
+        const STAGES = [
+            { id: 1, name: "Khởi Hành 🛣️", baseSpeed: 5,  turboSpeed: 10, maxObstacles: 2, label: "VÒNG 1: KHỞI HÀNH 🛣️" },
+            { id: 2, name: "Tăng Tốc 🏎️",  baseSpeed: 7,  turboSpeed: 13, maxObstacles: 2, label: "VÒNG 2: TẰNG TỐC 🏎️" },
+            { id: 3, name: "Cao Tốc 🚀",  baseSpeed: 9,  turboSpeed: 16, maxObstacles: 3, label: "VÒNG 3: CAO TỐC 🚀" },
+            { id: 4, name: "Tử Thần 💀",  baseSpeed: 11, turboSpeed: 19, maxObstacles: 4, label: "VÒNG 4: TỬ THẦN 💀" },
+            { id: 5, name: "Vô Cực 🌌",  baseSpeed: 13, turboSpeed: 23, maxObstacles: 5, label: "VÒNG 5: VÔ CỰC 🌌" }
+        ];
+
+        let score = 0;
+        let currentStageIndex = 0;
+        let timeLeft = 30; 
+        let isGameOver = true;
+        let currentSpeed = 0;
+
+        let player = {
+            x: 215,
+            y: 480,
+            width: 65,
+            height: 95,
+            targetX: 215,
+            steering: 8
+        };
+
+        let obstacles = [];
+        let coins = [];
+        let lineOffset = 0;
+
+        let gameInterval;
+        let timerInterval;
+
+        let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, a: false, d: false, w: false };
+        let isLeftMouseDown = false;
+
+        // 1. LẮNG NGHE SỰ KIỆN BÀN PHÍM
+        window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { if (e.key in keys) keys[e.key] = false; });
+
+        // 2. LẮNG NGHE SỰ KIỆN CHUỘT
+        container.addEventListener('mousemove', function(e) {
+            if (isGameOver) return;
+            let rect = container.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            player.targetX = mouseX - (player.width / 2);
+        });
+
+        container.addEventListener('mousedown', function(e) {
+            if (e.button === 0) isLeftMouseDown = true;
+        });
+        window.addEventListener('mouseup', function(e) {
+            if (e.button === 0) isLeftMouseDown = false;
+        });
+
+        function showStartScreen() {
+            victoryScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        }
+
+        function startGame() {
+            score = 0;
+            currentStageIndex = 0;
+            scoreTxt.innerText = score;
+            
+            startScreen.style.display = 'none';
+            gameoverScreen.style.display = 'none';
+            nextStageScreen.style.display = 'none';
+            victoryScreen.style.display = 'none';
+
+            setupStage();
+        }
+
+        function setupStage() {
+            timeLeft = 30; 
+            isGameOver = false;
+            player.x = 215;
+            player.targetX = 215;
+            obstacles = [];
+            coins = [];
+            lineOffset = 0;
+
+            let stageData = STAGES[currentStageIndex];
+            stageTxt.innerText = `${stageData.id}/5`;
+            timeTxt.innerText = timeLeft;
+            stageBanner.innerText = stageData.label;
+
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+
+            gameInterval = setInterval(updateGame, 1000 / 60);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            if (isGameOver) return;
+            timeLeft--;
+            timeTxt.innerText = timeLeft;
+
+            if (timeLeft <= 0) {
+                handleStageClear();
+            }
+        }
+
+        function updateGame() {
+            if (isGameOver) return;
+
+            let stageData = STAGES[currentStageIndex];
+            let isAccelerating = keys.ArrowUp || keys.w || isLeftMouseDown;
+
+            if (isAccelerating) {
+                currentSpeed += (stageData.turboSpeed - currentSpeed) * 0.1;
+                turboAlert.style.display = 'block';
+                score += 0.15; 
+            } else {
+                currentSpeed += (stageData.baseSpeed - currentSpeed) * 0.1;
+                turboAlert.style.display = 'none';
+                score += 0.04; 
+            }
+            
+            speedTxt.innerText = Math.floor(currentSpeed * 15);
+            scoreTxt.innerText = Math.floor(score);
+
+            if (keys.ArrowLeft || keys.a) player.targetX -= player.steering;
+            if (keys.ArrowRight || keys.d) player.targetX += player.steering;
+
+            player.targetX = Math.max(85, Math.min(420 - player.width, player.targetX));
+            player.x += (player.targetX - player.x) * 0.25;
+
+            lineOffset += currentSpeed;
+            if (lineOffset > 60) lineOffset = 0;
+
+            // --- THUẬT TOÁN ĐIỀU KHIỂN MẬT ĐỘ XE TĂNG TIẾN THÔNG MINH ---
+            // Số lượng tối đa xe cùng xuất hiện (stageData.maxObstacles) tăng dần từ 2 lên 5 con ở các vòng sau.
+            if (Math.random() < 0.04 && obstacles.length < stageData.maxObstacles) {
+                let lanes = [100, 215, 330];
+                let randomX = lanes[Math.floor(Math.random() * lanes.length)];
+                let canSpawn = true;
+                
+                for (let obs of obstacles) { 
+                    // Chống dính chùm: Dù xe xuất hiện nhiều, khoảng cách giữa các xe trên cùng làn phải cách nhau ít nhất 180px
+                    if (obs.x === randomX && obs.y < 180) {
+                        canSpawn = false; 
+                    }
+                }
+
+                if (canSpawn) {
+                    obstacles.push({
+                        x: randomX, y: -100, width: 65, height: 95,
+                        color: `hsl(${Math.random() * 360}, 85%, 45%)`
+                    });
+                }
+            }
+
+            // Sinh tiền xu
+            if (Math.random() < 0.02 && coins.length < 3) {
+                let lanes = [120, 235, 350];
+                let randomX = lanes[Math.floor(Math.random() * lanes.length)];
+                coins.push({ x: randomX, y: -40, radius: 12 });
+            }
+
+            // Di chuyển và kiểm tra va chạm xe địch
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += currentSpeed * 0.65; 
+
+                if (player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y) {
+                    triggerGameOver();
+                    return;
+                }
+
+                if (obs.y > 650) obstacles.splice(i, 1);
+            }
+
+            // Di chuyển và ăn xu
+            for (let i = coins.length - 1; i >= 0; i--) {
+                let coin = coins[i];
+                coin.y += currentSpeed;
+
+                if (coin.x > player.x && coin.x < player.x + player.width &&
+                    coin.y > player.y && coin.y < player.y + player.height) {
+                    coins.splice(i, 1);
+                    score += 200; 
+                    scoreTxt.innerText = Math.floor(score);
+                    continue;
+                }
+
+                if (coin.y > 650) coins.splice(i, 1);
+            }
+
+            renderGraphics();
+        }
+
+        function handleStageClear() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            turboAlert.style.display = 'none';
+            isLeftMouseDown = false; 
+
+            if (currentStageIndex < STAGES.length - 1) {
+                let nextStageData = STAGES[currentStageIndex + 1];
+                document.getElementById('next-stage-desc').innerText = `Bạn đã hoàn thành xuất sắc vòng này! Chuẩn bị bước sang Vòng ${nextStageData.id}: ${nextStageData.name}. Số lượng xe cản đường tối đa sẽ tăng lên thành ${nextStageData.maxObstacles} xe!`;
+                nextStageScreen.style.display = 'flex';
+            } else {
+                document.getElementById('victory-score').innerText = Math.floor(score);
+                victoryScreen.style.display = 'flex';
+            }
+        }
+
+        function startNextStage() {
+            currentStageIndex++;
+            nextStageScreen.style.display = 'none';
+            setupStage();
+        }
+
+        function renderGraphics() {
+            ctx.fillStyle = '#444'; 
+            ctx.fillRect(80, 0, 340, 600);
+
+            ctx.fillStyle = '#fff'; ctx.fillRect(70, 0, 10, 600); ctx.fillRect(420, 0, 10, 600);
+            ctx.fillStyle = '#d32f2f';
+            for (let y = -60 + lineOffset; y < 600; y += 60) {
+                ctx.fillRect(70, y, 10, 30); ctx.fillRect(420, y, 10, 30);
+            }
+
+            ctx.fillStyle = '#fff';
+            for (let y = -80 + lineOffset; y < 600; y += 80) {
+                ctx.fillRect(190, y, 6, 40); ctx.fillRect(305, y, 6, 40);
+            }
+
+            drawCar(player.x, player.y, '#e53935', true);
+
+            for (let obs of obstacles) { drawCar(obs.x, obs.y, obs.color, false); }
+
+            for (let coin of coins) {
+                ctx.beginPath(); ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffd700'; ctx.fill();
+                ctx.lineWidth = 2; ctx.strokeStyle = '#b78a00'; ctx.stroke();
+                ctx.fillStyle = '#b78a00'; ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', coin.x, coin.y);
+            }
+        }
+
+        function drawCar(x, y, mainColor, isPlayer) {
+            ctx.fillStyle = mainColor; ctx.fillRect(x + 5, y + 15, 55, 65);
+            ctx.beginPath(); ctx.arc(x + 32.5, y + 18, 27.5, Math.PI, 0); ctx.fill();
+            ctx.fillRect(x + 5, y + 75, 55, 10);
+            ctx.fillStyle = isPlayer ? '#e0f7fa' : '#333';
+            ctx.fillRect(x + 12, y + 30, 41, 15); ctx.fillRect(x + 15, y + 60, 35, 8);
+            ctx.fillStyle = '#111';
+            ctx.fillRect(x, y + 20, 6, 16); ctx.fillRect(x + 59, y + 20, 6, 16);
+            ctx.fillRect(x, y + 68, 6, 18); ctx.fillRect(x + 59, y + 68, 6, 18);
+            ctx.fillStyle = isPlayer ? '#ffd700' : '#fff';
+            ctx.fillRect(x + 10, y + 8, 8, 5); ctx.fillRect(x + 47, y + 8, 8, 5);
+            ctx.fillStyle = '#ff1744'; ctx.fillRect(x + 8, y + 83, 10, 3); ctx.fillRect(x + 47, y + 83, 10, 3);
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            isLeftMouseDown = false; 
+            document.getElementById('fail-stage').innerText = currentStageIndex + 1;
+            document.getElementById('final-score').innerText = Math.floor(score);
+            gameoverScreen.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

@@ -11,11 +11,11 @@ import { Icon } from './components/Icons';
 import StudentDashboard from './components/StudentDashboard';
 import { supabase } from './supabaseClient';
 
-import { 
-  seedTopics, 
-  seedExams, 
-  seedDocuments, 
-  seedUsers 
+import {
+  seedTopics,
+  seedExams,
+  seedDocuments,
+  seedUsers
 } from './data/seedData';
 
 // Giả sử đây là component màn hình làm bài/học tập của học sinh sau khi vào hệ thống
@@ -42,13 +42,13 @@ export default function App() {
   const [exams, setExams] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [users, setUsers] = useState([]);
-  
+
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'topics', 'exams', 'docs', 'admin'
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedExam, setSelectedExam] = useState(null);
   const [viewOriginalHtml, setViewOriginalHtml] = useState(false);
-  
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,15 +67,34 @@ export default function App() {
 
     if (storedTopics) {
       const loaded = JSON.parse(storedTopics);
-      const seedIds = seedTopics.map(t => t.id);
-      const loadedIds = loaded.map(t => t.id);
+      let changed = false;
+      
+      // Sync properties from seed data to local storage for default items
+      const updatedLoaded = loaded.map(loadedTopic => {
+        const seedMatch = seedTopics.find(s => s.id === loadedTopic.id);
+        if (seedMatch) {
+          const isDifferent = loadedTopic.htmlUrl !== seedMatch.htmlUrl || 
+                              loadedTopic.content !== seedMatch.content || 
+                              loadedTopic.title !== seedMatch.title ||
+                              loadedTopic.icon !== seedMatch.icon ||
+                              loadedTopic.description !== seedMatch.description;
+          if (isDifferent) {
+            changed = true;
+            return { ...loadedTopic, ...seedMatch };
+          }
+        }
+        return loadedTopic;
+      });
+
+      const loadedIds = updatedLoaded.map(t => t.id);
       const missing = seedTopics.filter(t => !loadedIds.includes(t.id));
-      if (missing.length > 0) {
-        const merged = [...loaded, ...missing];
+      
+      if (missing.length > 0 || changed) {
+        const merged = [...updatedLoaded, ...missing];
         localStorage.setItem('thpt_tin_topics', JSON.stringify(merged));
         setTopics(merged);
       } else {
-        setTopics(loaded);
+        setTopics(updatedLoaded);
       }
     } else {
       localStorage.setItem('thpt_tin_topics', JSON.stringify(seedTopics));
@@ -86,15 +105,24 @@ export default function App() {
       const loaded = JSON.parse(storedExams);
       const loadedMap = new Map(loaded.map(e => [e.id, e]));
       let changed = false;
-      
+
       seedExams.forEach(se => {
         const existing = loadedMap.get(se.id);
-        if (!existing || JSON.stringify(existing.questions) !== JSON.stringify(se.questions)) {
+        if (!existing) {
           loadedMap.set(se.id, se);
           changed = true;
+        } else {
+          const isDifferent = existing.htmlUrl !== se.htmlUrl || 
+                              existing.title !== se.title || 
+                              existing.duration !== se.duration ||
+                              JSON.stringify(existing.questions) !== JSON.stringify(se.questions);
+          if (isDifferent) {
+            loadedMap.set(se.id, { ...existing, ...se });
+            changed = true;
+          }
         }
       });
-      
+
       if (changed) {
         const merged = Array.from(loadedMap.values());
         localStorage.setItem('thpt_tin_exams', JSON.stringify(merged));
@@ -171,7 +199,7 @@ export default function App() {
 
       if (data && data.length > 0) {
         const serverSessionId = data[0].session_id;
-        
+
         // Nếu mã trên đám mây đã bị thiết bị khác thay đổi
         if (serverSessionId !== currentUser.session_id) {
           alert("Tài khoản của thầy/trò vừa được đăng nhập ở thiết bị khác. Hệ thống sẽ tự động thoát!");
@@ -199,7 +227,7 @@ export default function App() {
     };
 
     const userExists = users.some(u => u.id === normalizedUser.id || u.username.toLowerCase() === normalizedUser.username.toLowerCase());
-    
+
     let updatedUsers;
     if (userExists) {
       updatedUsers = users.map(u => {
@@ -246,7 +274,7 @@ export default function App() {
   const handleUpdateUsers = (updatedUsers) => {
     setUsers(updatedUsers);
     localStorage.setItem('thpt_tin_users', JSON.stringify(updatedUsers));
-    
+
     // Sync current session if details changed
     if (currentUser && currentUser.role !== 'admin') {
       const freshUser = updatedUsers.find(u => u.id === currentUser.id);
@@ -258,6 +286,11 @@ export default function App() {
         handleLogout();
       }
     }
+  };
+
+  const handleUpdateTopics = (updatedTopics) => {
+    setTopics(updatedTopics);
+    localStorage.setItem('thpt_tin_topics', JSON.stringify(updatedTopics));
   };
 
   const handleUpdateExams = (updatedExams) => {
@@ -342,7 +375,7 @@ export default function App() {
       const savedState = window.history.state;
       const topic = savedState.selectedTopicId ? topics.find(t => t.id === savedState.selectedTopicId) : null;
       const exam = savedState.selectedExamId ? exams.find(e => e.id === savedState.selectedExamId) : null;
-      
+
       setActiveTab(savedState.activeTab || 'home');
       setSelectedTopic(topic || null);
       setSelectedExam(exam || null);
@@ -354,7 +387,7 @@ export default function App() {
       if (state && typeof state === 'object' && 'activeTab' in state) {
         const topic = state.selectedTopicId ? topics.find(t => t.id === state.selectedTopicId) : null;
         const exam = state.selectedExamId ? exams.find(e => e.id === state.selectedExamId) : null;
-        
+
         setActiveTab(state.activeTab || 'home');
         setSelectedTopic(topic || null);
         setSelectedExam(exam || null);
@@ -388,8 +421,8 @@ export default function App() {
   };
 
   // --- Filter and Search ---
-  const filteredTopics = topics.filter(t => 
-    t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredTopics = topics.filter(t =>
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -433,12 +466,12 @@ export default function App() {
       <div className="glow-bg-2" />
 
       {/* Navigation Header */}
-      <Navbar 
-        activeTab={activeTab} 
+      <Navbar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
           navigateTo(tab, null, null, false);
           setSubYearFilter('all');
-        }} 
+        }}
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenLogin={() => setIsAuthModalOpen(true)}
@@ -448,11 +481,11 @@ export default function App() {
 
       {/* Main Container */}
       <main className="main-content">
-        
+
         {/* --- IN EXAM MODE --- */}
         {selectedExam && currentUser ? (
           viewOriginalHtml ? null : (
-            <ExamSession 
+            <ExamSession
               exam={selectedExam}
               currentUser={currentUser}
               onFinish={handleFinishExam}
@@ -467,7 +500,7 @@ export default function App() {
                 {currentUser && currentUser.role !== 'admin' ? (
                   <>
                     <StudentPanel student={currentUser} onLogout={handleLogout} />
-                    <StudentDashboard 
+                    <StudentDashboard
                       studentInfo={currentUser}
                       onStartStudy={() => navigateTo('topics', null, null, false)}
                       onStartExam={() => navigateTo('exams', null, null, false)}
@@ -475,14 +508,14 @@ export default function App() {
                     />
                   </>
                 ) : (
-                  <Hero 
-                    onStartStudy={() => navigateTo('topics', null, null, false)} 
+                  <Hero
+                    onStartStudy={() => navigateTo('topics', null, null, false)}
                     onStartExam={() => navigateTo('exams', null, null, false)}
                     stats={stats}
                     onStartClick={() => setIsAuthModalOpen(true)}
                   />
                 )}
-                
+
                 {/* Compact Topics Section on Home */}
                 <div className="section-header" style={{ marginTop: currentUser && currentUser.role !== 'admin' ? '32px' : '0' }}>
 
@@ -491,13 +524,13 @@ export default function App() {
                     Xem tất cả
                   </button>
                 </div>
-                
+
                 <div className="topics-grid">
                   {topics.slice(0, 3).map(topic => (
-                    <TopicCard 
-                      key={topic.id} 
-                      topic={topic} 
-                      onSelect={handleSelectTopic} 
+                    <TopicCard
+                      key={topic.id}
+                      topic={topic}
+                      onSelect={handleSelectTopic}
                     />
                   ))}
                 </div>
@@ -508,9 +541,9 @@ export default function App() {
             {activeTab === 'topics' && (
               <div>
                 {selectedTopic && currentUser ? (
-                  <TopicDetail 
-                    topic={selectedTopic} 
-                    onBack={() => navigateTo('topics', null, null, false)} 
+                  <TopicDetail
+                    topic={selectedTopic}
+                    onBack={() => navigateTo('topics', null, null, false)}
                   />
                 ) : (
                   <div>
@@ -518,10 +551,10 @@ export default function App() {
                       <h2 className="section-title">Kiến thức tổng hợp</h2>
                       <div style={{ display: 'flex', gap: '12px' }}>
                         <div style={{ position: 'relative' }}>
-                          <input 
-                            type="text" 
-                            className="form-input" 
-                            placeholder="Tìm chủ đề học tập..." 
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Tìm chủ đề học tập..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{ paddingLeft: '36px', minWidth: '240px' }}
@@ -533,10 +566,10 @@ export default function App() {
 
                     <div className="topics-grid">
                       {filteredTopics.map(topic => (
-                        <TopicCard 
-                          key={topic.id} 
-                          topic={topic} 
-                          onSelect={handleSelectTopic} 
+                        <TopicCard
+                          key={topic.id}
+                          topic={topic}
+                          onSelect={handleSelectTopic}
                         />
                       ))}
                     </div>
@@ -552,10 +585,10 @@ export default function App() {
                   <h2 className="section-title">Luyện đề thi thử trực tuyến</h2>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <div style={{ position: 'relative' }}>
-                      <input 
-                        type="text" 
-                        className="form-input" 
-                        placeholder="Tìm kiếm đề thi..." 
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Tìm kiếm đề thi..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{ paddingLeft: '36px', minWidth: '240px' }}
@@ -567,31 +600,31 @@ export default function App() {
 
                 {/* Categories filtering tabs */}
                 <div className="exams-filter">
-                  <button 
+                  <button
                     className={`filter-btn ${examCategoryFilter === 'all' ? 'active' : ''}`}
                     onClick={() => { setExamCategoryFilter('all'); setSubYearFilter('all'); }}
                   >
                     Tất cả đề thi
                   </button>
-                  <button 
+                  <button
                     className={`filter-btn ${examCategoryFilter === 'thpt' ? 'active' : ''}`}
                     onClick={() => { setExamCategoryFilter('thpt'); setSubYearFilter('all'); }}
                   >
                     Đề thi các trường THPT
                   </button>
-                  <button 
+                  <button
                     className={`filter-btn ${examCategoryFilter === 'so-gd' ? 'active' : ''}`}
                     onClick={() => { setExamCategoryFilter('so-gd'); setSubYearFilter('all'); }}
                   >
                     Đề thi các Sở GD&ĐT
                   </button>
-                  <button 
+                  <button
                     className={`filter-btn ${examCategoryFilter === 'tham-khao' ? 'active' : ''}`}
                     onClick={() => { setExamCategoryFilter('tham-khao'); setSubYearFilter('all'); }}
                   >
                     Đề thi tham khảo
                   </button>
-                  <button 
+                  <button
                     className={`filter-btn ${examCategoryFilter === 'tot-nghiep' ? 'active' : ''}`}
                     onClick={() => { setExamCategoryFilter('tot-nghiep'); setSubYearFilter('all'); }}
                   >
@@ -601,28 +634,28 @@ export default function App() {
 
                 {examCategoryFilter === 'tot-nghiep' && (
                   <div className="exams-filter sub-filter" style={{ display: 'flex', gap: '8px', marginTop: '0', marginBottom: '24px', paddingLeft: '0', borderBottom: 'none' }}>
-                    <button 
+                    <button
                       className={`filter-btn ${subYearFilter === 'all' ? 'active' : ''}`}
                       onClick={() => setSubYearFilter('all')}
                       style={{ fontSize: '0.9rem', padding: '6px 12px' }}
                     >
                       Tất cả các năm
                     </button>
-                    <button 
+                    <button
                       className={`filter-btn ${subYearFilter === '2025' ? 'active' : ''}`}
                       onClick={() => setSubYearFilter('2025')}
                       style={{ fontSize: '0.9rem', padding: '6px 12px' }}
                     >
                       Đề thi tốt nghiệp năm 2025
                     </button>
-                    <button 
+                    <button
                       className={`filter-btn ${subYearFilter === '2026' ? 'active' : ''}`}
                       onClick={() => setSubYearFilter('2026')}
                       style={{ fontSize: '0.9rem', padding: '6px 12px' }}
                     >
                       Đề thi tốt nghiệp năm 2026
                     </button>
-                    <button 
+                    <button
                       className={`filter-btn ${subYearFilter === '2027' ? 'active' : ''}`}
                       onClick={() => setSubYearFilter('2027')}
                       style={{ fontSize: '0.9rem', padding: '6px 12px' }}
@@ -635,10 +668,10 @@ export default function App() {
                 {filteredExams.length > 0 ? (
                   <div className="exams-grid">
                     {filteredExams.map(exam => (
-                      <ExamCard 
-                        key={exam.id} 
-                        exam={exam} 
-                        onStart={handleStartExam} 
+                      <ExamCard
+                        key={exam.id}
+                        exam={exam}
+                        onStart={handleStartExam}
                       />
                     ))}
                   </div>
@@ -671,9 +704,9 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      
-                      <a 
-                        href={doc.downloadUrl} 
+
+                      <a
+                        href={doc.downloadUrl}
                         className="btn btn-secondary"
                         onClick={(e) => {
                           if (!currentUser) {
@@ -703,9 +736,13 @@ export default function App() {
 
             {/* --- ADMIN DASHBOARD --- */}
             {activeTab === 'admin' && currentUser && currentUser.role === 'admin' && (
-              <DashboardAdmin 
+              <DashboardAdmin
                 currentAdmin={currentUser}
                 onAdminUpdated={(newData) => setCurrentUser(newData)}
+                topics={topics}
+                onUpdateTopics={handleUpdateTopics}
+                exams={exams}
+                onUpdateExams={handleUpdateExams}
               />
             )}
           </>
@@ -761,7 +798,7 @@ export default function App() {
       </footer>
 
       {/* Global Auth Modal */}
-      <AuthModal 
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleLogin}
@@ -773,7 +810,7 @@ export default function App() {
 
       {/* Fullscreen HTML Exam overlay */}
       {selectedExam && viewOriginalHtml && (
-        <div style={{ 
+        <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -786,8 +823,8 @@ export default function App() {
           overflow: 'hidden'
         }}>
           {/* Close button X in top-left */}
-          <button 
-            onClick={() => navigateTo(activeTab, selectedTopic, null, false)} 
+          <button
+            onClick={() => navigateTo(activeTab, selectedTopic, null, false)}
             title="Thoát và quay lại"
             style={{
               position: 'absolute',
@@ -810,26 +847,27 @@ export default function App() {
               fontWeight: 'bold',
               outline: 'none'
             }}
-            onMouseOver={(e) => { 
-              e.currentTarget.style.transform = 'scale(1.1)'; 
-              e.currentTarget.style.backgroundColor = '#dc2626'; 
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.backgroundColor = '#dc2626';
               e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)';
             }}
-            onMouseOut={(e) => { 
-              e.currentTarget.style.transform = 'scale(1)'; 
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
               e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.95)';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
             }}
           >
             ✕
           </button>
-          
-          <iframe 
-            src={getIframeUrl(selectedExam)} 
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              border: 'none', 
+
+          <iframe
+            srcDoc={selectedExam.htmlContent || undefined}
+            src={!selectedExam.htmlContent ? getIframeUrl(selectedExam) : undefined}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
               background: '#ffffff'
             }}
             title={selectedExam.title}

@@ -6,6 +6,7 @@ export const seedTopics = [
     title: "Trí tuệ nhân tạo (AI)",
     icon: "Cpu",
     description: "Khái niệm cơ bản về AI, lịch sử phát triển, các ứng dụng tiêu biểu và tác động của AI đến đời sống.",
+    htmlUrl: "/cd1_AI.html",
     content: `
       <h2>1. Khái niệm về Trí tuệ nhân tạo (AI)</h2>
       <p>Trí tuệ nhân tạo (Artificial Intelligence - AI) là một ngành khoa học máy tính liên quan đến việc chế tạo các máy móc thông minh, đặc biệt là các chương trình máy tính thông minh có khả năng thực hiện các công việc vốn yêu cầu trí tuệ của con người.</p>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Contra 2D Clone</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background: #000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+            border: 4px solid #333;
+            display: block;
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            display: flex;
+            justify-content: space-between;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px #000;
+            pointer-events: none;
+        }
+        #hud span { color: #ff3333; }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            color: #aaa;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.5;
+            pointer-events: none;
+        }
+        #instructions b { color: #00ffff; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div id="hud">
+        <div>SCORE: <span id="scoreText">00000</span></div>
+        <div>WEAPON: <span id="weaponText" style="color:#00ff00;">NORMAL</span></div>
+        <div>LIVES: <span id="livesText">❤❤❤</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+    
+    <div id="instructions">
+        [Di chuyển]: <b>A/D hoặc Mũi tên</b> | [Nằm/Ngắm]: <b>W/S hoặc Lên/Xuống</b><br>
+        [Bắn]: Giữ phím <b>J</b> | [Nhảy]: Phím <b>K</b>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Trạng thái game
+let score = 0;
+let lives = 3;
+let gameOver = false;
+let gameTime = 0;
+
+// Cấu hình thế giới
+const GRAVITY = 0.5;
+const FLOOR_Y = 380;
+const camera = { x: 0 };
+
+// Cấu trúc map (Các nền tảng/platform để nhảy lên giống Contra)
+const platforms = [
+    { x: 0, y: FLOOR_Y, w: 3000, h: 100 }, // Mặt đất dài
+    { x: 250, y: 280, w: 180, h: 15 },
+    { x: 500, y: 200, w: 200, h: 15 },
+    { x: 800, y: 260, w: 250, h: 15 },
+    { x: 1200, y: 220, w: 300, h: 15 },
+    { x: 1600, y: 280, w: 200, h: 15 }
+];
+
+// Khởi tạo Người chơi (Rambo)
+const player = {
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    width: 30,
+    height: 50,
+    speed: 4,
+    jumpForce: 11,
+    grounded: false,
+    facing: 1, // 1: Phải, -1: Trái
+    aimX: 1,   // Hướng ngắm bắn X
+    aimY: 0,   // Hướng ngắm bắn Y
+    isCrouching: false,
+    shootCooldown: 0,
+    weaponType: 'NORMAL', // 'NORMAL' hoặc 'SPREAD'
+    invulnerable: 0
+};
+
+// Mảng quản lý các thực thể
+let bullets = [];
+let enemies = [];
+let enemyBullets = [];
+let items = [];
+let particles = [];
+
+// Quản lý nút bấm
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// Tạo hiệu ứng nổ hạt (Particle Explosion)
+function createExplosion(x, y, color = '#ff5500') {
+    for (let i = 0; i < 12; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            radius: Math.random() * 3 + 2,
+            alpha: 1,
+            color: color
+        });
+    }
+}
+
+// Bắn đạn
+function playerShoot() {
+    if (player.shootCooldown > 0) return;
+    
+    let startX = player.x + (player.facing === 1 ? player.width : 0);
+    let startY = player.y + (player.isCrouching ? player.height * 0.7 : player.height * 0.3);
+    
+    // Điều chỉnh tọa độ bắn nếu ngắm thẳng đứng
+    if (player.aimY === -1 && player.aimX === 0) {
+        startX = player.x + player.width / 2;
+        startY = player.y;
+    }
+
+    if (player.weaponType === 'NORMAL') {
+        bullets.push({ x: startX, y: startY, vx: player.aimX * 8, vy: player.aimY * 8, size: 4, color: '#ffcc00' });
+        player.shootCooldown = 12; // Tốc độ bắn đạn thường
+    } else if (player.weaponType === 'SPREAD') {
+        // S-Gun: Bắn ra 3 tia góc lệch nhau
+        let angle = Math.atan2(player.aimY, player.aimX);
+        let angles = [angle - 0.2, angle, angle + 0.2];
+        
+        angles.forEach(a => {
+            bullets.push({
+                x: startX,
+                y: startY,
+                vx: Math.cos(a) * 9,
+                vy: Math.sin(a) * 9,
+                size: 6,
+                color: '#ff3300'
+            });
+        });
+        player.shootCooldown = 18;
+    }
+}
+
+// Spawner: Tự động sinh quái vật theo thời gian/vị trí camera
+function spawnEnemies() {
+    if (gameTime % 100 === 0 && enemies.length < 5) {
+        // Sinh lính chạy bộ từ bên phải camera
+        enemies.push({
+            type: 'SOLDIER',
+            x: camera.x + canvas.width + 50,
+            y: FLOOR_Y - 50,
+            vx: -2,
+            vy: 0,
+            width: 30,
+            height: 50,
+            hp: 1
+        });
+    }
+    
+    // Sinh ụ súng cố định tại một số mốc cố định nếu chưa có
+    if (gameTime === 1) {
+        enemies.push({ type: 'TURRET', x: 650, y: 220, width: 40, height: 40, shootCooldown: 60, hp: 3 });
+        enemies.push({ type: 'TURRET', x: 1350, y: 170, width: 40, height: 40, shootCooldown: 80, hp: 3 });
+    }
+}
+
+// Xử lý va chạm hình hộp chữ nhật (AABB)
+function checkAABB(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.width &&
+           rect1.x + rect1.width > rect2.x &&
+           rect1.y < rect2.y + rect2.height &&
+           rect1.y + rect1.height > rect2.y;
+}
+
+function update() {
+    if (gameOver) {
+        if (keys['KeyR']) location.reload();
+        return;
+    }
+
+    gameTime++;
+    if (player.invulnerable > 0) player.invulnerable--;
+    if (player.shootCooldown > 0) player.shootCooldown--;
+
+    // 1. Xử lý Trạng thái di chuyển & Ngắm bắn của Người chơi
+    player.isCrouching = false;
+    player.aimX = player.facing;
+    player.aimY = 0;
+
+    if (keys['KeyA'] || keys['ArrowLeft']) {
+        player.vx = -player.speed;
+        player.facing = -1;
+    } else if (keys['KeyD'] || keys['ArrowRight']) {
+        player.vx = player.speed;
+        player.facing = 1;
+    } else {
+        player.vx = 0;
+    }
+
+    // Logic Ngắm bắn hướng
+    if (keys['KeyW'] || keys['ArrowUp']) {
+        player.aimY = -1;
+        if (!keys['KeyA'] && !keys['KeyD'] && !keys['ArrowLeft'] && !keys['ArrowRight']) {
+            player.aimX = 0; // Bắn thẳng đứng lên trời
+        }
+    } else if (keys['KeyS'] || keys['ArrowDown']) {
+        if (player.grounded) {
+            player.isCrouching = true;
+            player.vx = 0; // Nằm xuống thì không chạy được
+        }
+        player.aimY = 1;
+    }
+
+    // Nhảy phím K
+    if (keys['KeyKeyK'] || keys['KeyK']) {
+        if (player.grounded) {
+            player.vy = -player.jumpForce;
+            player.grounded = false;
+        }
+    }
+
+    // Bắn súng phím J (Giữ phím để sấy)
+    if (keys['KeyKeyJ'] || keys['KeyJ']) {
+        playerShoot();
+    }
+
+    // Áp dụng vật lý trọng lực
+    player.vy += GRAVITY;
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Giới hạn không lùi quá biên trái màn hình
+    if (player.x < camera.x) player.x = camera.x;
+
+    // 2. Va chạm của Người chơi với các Nền tảng (Platforms)
+    player.grounded = false;
+    platforms.forEach(p => {
+        // Chỉ va chạm khi nhân vật rơi từ trên xuống bệ
+        if (player.vx >= 0 && player.vy >= 0 &&
+            player.x + player.width > p.x && player.x < p.x + p.w &&
+            player.y + player.height >= p.y && player.y + player.height - player.vy <= p.y + 10) {
+            player.y = p.y - player.height;
+            player.vy = 0;
+            player.grounded = true;
+        }
+    });
+
+    // Rơi xuống vực chết
+    if (player.y > canvas.height + 100) {
+        playerDie();
+    }
+
+    // 3. Cập nhật vị trí Camera cuốn theo người chơi (Chỉ tiến không lùi)
+    if (player.x > camera.x + canvas.width / 2) {
+        camera.x = player.x - canvas.width / 2;
+    }
+
+    // 4. Quản lý Đạn của Người chơi
+    bullets.forEach((b, index) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        // Xóa đạn ra khỏi màn hình
+        if (b.x < camera.x || b.x > camera.x + canvas.width || b.y < 0 || b.y > canvas.height) {
+            bullets.splice(index, 1);
+        }
+    });
+
+    // 5. Cập nhật Kẻ địch & Xử lý va chạm
+    spawnEnemies();
+    enemies.forEach((e, eIdx) => {
+        // AI di chuyển cho lính thường
+        if (e.type === 'SOLDIER') {
+            e.vy += GRAVITY;
+            e.x += e.vx;
+            e.y += e.vy;
+            
+            // Va chạm đất cho lính
+            platforms.forEach(p => {
+                if (e.x + e.width > p.x && e.x < p.x + p.w && e.y + e.height >= p.y && e.y + e.height - e.vy <= p.y + 10) {
+                    e.y = p.y - e.height;
+                    e.vy = 0;
+                }
+            });
+        } 
+        // Logic bắn súng tự động cho Ụ súng (Turret)
+        else if (e.type === 'TURRET') {
+            e.shootCooldown--;
+            if (e.shootCooldown <= 0 && e.x > camera.x && e.x < camera.x + canvas.width) {
+                // Bắn hướng về phía người chơi
+                let angle = Math.atan2((player.y + 20) - e.y, player.x - e.x);
+                enemyBullets.push({
+                    x: e.x + e.width/2,
+                    y: e.y + e.height/2,
+                    vx: Math.cos(angle) * 4,
+                    vy: Math.sin(angle) * 4
+                });
+                e.shootCooldown = 90 + Math.random() * 60;
+            }
+        }
+
+        // Đạn người chơi bắn trúng kẻ địch
+        bullets.forEach((b, bIdx) => {
+            if (checkAABB({x: b.x, y: b.y, width: b.size, height: b.size}, e)) {
+                bullets.splice(bIdx, 1);
+                e.hp--;
+                createExplosion(e.x + e.width/2, e.y + e.height/2, '#ffffff');
+
+                if (e.hp <= 0) {
+                    createExplosion(e.x + e.width/2, e.y + e.height/2, '#ff3300');
+                    // Tỷ lệ rơi hòm tiếp tế chữ S khi hạ ụ súng
+                    if (e.type === 'TURRET' || Math.random() < 0.2) {
+                        items.push({ x: e.x, y: e.y - 10, width: 25, height: 20, vy: 0 });
+                    }
+                    enemies.splice(eIdx, 1);
+                    score += e.type === 'TURRET' ? 500 : 100;
+                    document.getElementById('scoreText').innerText = String(score).padStart(5, '0');
+                }
+            }
+        });
+
+        // Kẻ địch tông trực tiếp vào người chơi
+        if (checkAABB(player, e) && player.invulnerable === 0) {
+            playerDie();
+        }
+
+        // Xóa quái khuất sau màn hình
+        if (e.x < camera.x - 100) enemies.splice(eIdx, 1);
+    });
+
+    // 6. Quản lý Đạn của Quái
+    enemyBullets.forEach((eb, ebIdx) => {
+        eb.x += eb.vx;
+        eb.y += eb.vy;
+
+        // Trúng người chơi
+        if (checkAABB({x: eb.x, y: eb.y, width: 6, height: 6}, player) && player.invulnerable === 0) {
+            enemyBullets.splice(ebIdx, 1);
+            playerDie();
+        }
+
+        if (eb.x < camera.x || eb.x > camera.x + canvas.width) {
+            enemyBullets.splice(ebIdx, 1);
+        }
+    });
+
+    // 7. Vật phẩm / Hòm vũ khí (S-Gun Capsule)
+    items.forEach((item, idx) => {
+        item.vy += GRAVITY;
+        item.y += item.vy;
+        
+        platforms.forEach(p => {
+            if (item.x + item.width > p.x && item.x < p.x + p.w && item.y + item.height >= p.y && item.y + item.height - item.vy <= p.y + 10) {
+                item.y = p.y - item.height;
+                item.vy = 0;
+            }
+        });
+
+        if (checkAABB(player, item)) {
+            player.weaponType = 'SPREAD';
+            document.getElementById('weaponText').innerText = 'SPREAD (S)';
+            document.getElementById('weaponText').style.color = '#ff3300';
+            items.splice(idx, 1);
+        }
+    });
+
+    // 8. Hiệu ứng hạt khói nổ
+    particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        if (p.alpha <= 0) particles.splice(idx, 1);
+    });
+}
+
+function playerDie() {
+    lives--;
+    createExplosion(player.x + player.width/2, player.y + player.height/2, '#ff0000');
+    if (lives < 0) {
+        gameOver = true;
+        document.getElementById('livesText').innerText = 'GAME OVER';
+    } else {
+        document.getElementById('livesText').innerText = '❤'.repeat(lives);
+        // Hồi sinh nhân vật
+        player.x = camera.x + 50;
+        player.y = 50;
+        player.vx = 0;
+        player.vy = 0;
+        player.weaponType = 'NORMAL';
+        document.getElementById('weaponText').innerText = 'NORMAL';
+        document.getElementById('weaponText').style.color = '#00ff00';
+        player.invulnerable = 90; // Bất tử lâm thời 1.5 giây
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    // Dịch chuyển camera theo trục dọc thế giới
+    ctx.translate(-camera.x, 0);
+
+    // 1. Vẽ các nền tảng địa hình
+    platforms.forEach(p => {
+        ctx.fillStyle = p.y === FLOOR_Y ? '#0a5c0a' : '#8B5A2B'; // Sàn đất cỏ / bệ đá mọc
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        
+        // Vẽ thêm vân gạch retro
+        ctx.strokeStyle = '#222';
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+    });
+
+    // 2. Vẽ Hòm tiếp tế vật phẩm
+    items.forEach(item => {
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(item.x, item.y, item.width, item.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('S', item.x + 7, item.y + 15);
+    });
+
+    // 3. Vẽ Kẻ địch
+    enemies.forEach(e => {
+        if (e.type === 'SOLDIER') {
+            ctx.fillStyle = '#33ccff'; // Lính áo xanh biển da trời đặc trưng
+            ctx.fillRect(e.x, e.y, e.width, e.height);
+            // Mũ đỏ
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(e.x + 5, e.y, e.width - 10, 10);
+        } else if (e.type === 'TURRET') {
+            ctx.fillStyle = '#444444'; // Ụ súng phòng thủ góc
+            ctx.beginPath();
+            ctx.arc(e.x + e.width/2, e.y + e.height/2, e.width/2, 0, Math.PI * 2);
+            ctx.fill();
+            // Nòng súng chỉ hướng đỏ hiểm nguy
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(e.x + e.width/2 - 5, e.y + e.height/2 - 5, 10, 10);
+        }
+    });
+
+    // 4. Vẽ Đạn quái
+    enemyBullets.forEach(eb => {
+        ctx.fillStyle = '#ff3333';
+        ctx.beginPath();
+        ctx.arc(eb.x, eb.y, 4, 0, Math.PI*2);
+        ctx.fill();
+    });
+
+    // 5. Vẽ Đạn người chơi
+    bullets.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // 6. Vẽ Người chơi (Rambo)
+    if (player.invulnerable === 0 || Math.floor(gameTime / 4) % 2 === 0) {
+        ctx.fillStyle = '#ff5722'; // Quần đỏ rực lửa của chiến binh Contra
+
+        if (player.isCrouching) {
+            // Tư thế nằm rạp bắn
+            ctx.fillRect(player.x, player.y + player.height - 20, player.height, 20);
+            ctx.fillStyle = '#ffdbac'; // Da người trần hở ngực
+            ctx.fillRect(player.x + (player.facing === 1 ? 30 : 0), player.y + player.height - 35, 15, 15);
+        } else {
+            // Tư thế đứng thẳng / chạy nhảy cơ bản
+            ctx.fillRect(player.x, player.y + 20, player.width, 30);
+            ctx.fillStyle = '#ffdbac'; 
+            ctx.fillRect(player.x + 3, player.y, player.width - 6, 20); // Đầu & Ngực trần khoẻ khoắn
+            
+            // Băng buộc đầu màu đỏ đặc trưng Contra (Headband)
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(player.x, player.y + 4, player.width, 4);
+
+            // Cây súng cầm trên tay dựa theo hướng ngắm
+            ctx.fillStyle = '#555';
+            let gunW = 20, gunH = 6;
+            let gunX = player.x + (player.facing === 1 ? player.width - 5 : -15);
+            let gunY = player.y + 18;
+
+            if (player.aimY === -1) { // Ngắm xéo góc lên trên
+                ctx.save();
+                ctx.translate(player.x + player.width/2, player.y + 15);
+                ctx.rotate(player.facing === 1 ? -Math.PI/4 : -3*Math.PI/4);
+                ctx.fillRect(0, -3, gunW, gunH);
+                ctx.restore();
+            } else { // Ngắm ngang thông thường
+                ctx.fillRect(gunX, gunY, gunW, gunH);
+            }
+        }
+    }
+
+    // 7. Vẽ các hạt hiệu ứng nổ tung
+    particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+
+    ctx.restore();
+
+    // Màn hình Game Over / Hết mạng
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ff3333';
+        ctx.font = 'bold 40px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '20px "Courier New"';
+        ctx.fillText('Ấn phím R để tái sinh phục hận', canvas.width / 2, canvas.height / 2 + 30);
+    }
+}
+
+// Vòng lặp Core Loop chính của game
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Kích hoạt trò chơi
+loop();
+</script>
+
+</body>
+</html>
