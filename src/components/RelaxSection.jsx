@@ -139,7 +139,7 @@ export default function RelaxSection() {
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Icon name="MessageSquare" style={{ width: '16px', height: '16px' }} />
-              Clip vui công nghệ
+              Clip hài tổng hợp
             </span>
           </button>
         </div>
@@ -391,24 +391,101 @@ function FunnyClipsSection() {
   const clips = [
     {
       id: 'clip_1',
-      title: 'Khi học sinh ôn thi Tin Học THPT kiểu...',
-      description: 'Khi bạn nghĩ lập trình web chỉ là copy-paste và cái kết đầy hài hước.',
-      embedId: 'dQw4w9WgXcQ',
-      duration: '02:15'
+      title: 'Những thánh lầy nghiện rượu sợ vợ - Tập 1',
+      description: 'Tổng hợp những tình huống dở khóc dở cười khi các ông chồng sợ vợ.',
+      embedId: '-f13MV7lpmY',
+      duration: '05:26'
     },
     {
       id: 'clip_2',
-      title: 'HTML có thực sự là ngôn ngữ lập trình?',
-      description: 'Hài hước tranh luận muôn thuở giữa lập trình viên chính hiệu và dân học thiết kế web.',
-      embedId: 'dQw4w9WgXcQ',
-      duration: '01:45'
+      title: 'Hai anh em tinh nghịch - Thử thách nhịn cười',
+      description: 'Video hài hước vui nhộn về hai anh em với những trò đùa tinh quái.',
+      embedId: 'S32XPKaK7yI',
+      duration: '11:12'
     },
     {
       id: 'clip_3',
-      title: 'Cuộc đời của một bug trong mã nguồn',
-      description: 'Tìm ra bug đã khó, sửa xong bug đẻ thêm 10 bug khác còn khó hơn!',
-      embedId: 'dQw4w9WgXcQ',
-      duration: '03:10'
+      title: 'Hài hước Trung Quốc: Siêu nhân lầy lội',
+      description: 'Những pha tấu hài cười ra nước mắt của các diễn viên hài Trung Quốc.',
+      embedId: 'bzmXOctJsi0',
+      duration: '14:42'
+    },
+    {
+      id: 'clip_4',
+      title: 'Lý Phi: Khi thông minh hóa ngốc nghếch',
+      description: 'Những thất bại bất ngờ và hài hước nhất của Lý Phi.',
+      embedId: 'B2qmm3KP0oc',
+      duration: '11:49'
+    },
+    {
+      id: 'clip_5',
+      title: 'Kung Fu giật trái cây thất bại',
+      description: 'Pha biểu diễn Kung Fu hài hước và cái kết ê chề khi trộm hoa quả.',
+      embedId: 'o0qRDZrUmvA',
+      duration: '15:49'
+    },
+    {
+      id: 'clip_6',
+      title: 'Hài Trung Quốc tuyển chọn siêu hài hước',
+      description: 'Tổng hợp những clip hài hước ngắn đang làm mưa làm gió trên mạng xã hội.',
+      embedId: 'ClJxMuVqS6s',
+      duration: '11:16'
+    },
+    {
+      id: 'clip_7',
+      title: 'Lý Phi: Vừa uống một ngụm đã bị bắt quả tang',
+      description: 'Câu chuyện hài hước không đỡ nổi khi Lý Phi cố gắng giấu vợ uống rượu.',
+      embedId: 'FHKA2duwGlc',
+      duration: '33:26'
+    },
+    {
+      id: 'clip_8',
+      title: 'Lý Phi: Uống rượu bị vợ bắt và cái kết',
+      description: 'Hậu quả dở khóc dở cười khi bị vợ phát hiện uống rượu lén.',
+      embedId: 'uUJDpofgcS8',
+      duration: '22:01'
+    },
+    {
+      id: 'clip_9',
+      title: 'Lý Phi: Đồ ăn ngon thế này phải giành thôi',
+      description: 'Pha tấu hài giành đồ ăn cực kỳ hài hước trong gia đình Lý Phi.',
+      embedId: 'qY4r1P3aRIo',
+      duration: '12:09'
+    },
+    {
+      id: 'clip_10',
+      title: 'Tuyển tập hài kịch ngắn cười vỡ bụng',
+      description: 'Những tình huống tấu hài đời thường vui nhộn và vô cùng giải trí.',
+      embedId: 'tqSia7VJiK0',
+      duration: '15:16'
+    },
+    {
+      id: 'clip_11',
+      title: 'Nấu bún mắm ở quê ngon bổ rẻ | Lê Tuấn Khang',
+      description: 'Cách nấu bún mắm mang đậm hương vị miền Tây dân dã và vô cùng hài hước.',
+      embedId: 'c213-6A98lw',
+      duration: '13:23'
+    },
+    {
+      id: 'clip_12',
+      title: 'Ở bên cồn miền quê sông nước | Lê Tuấn Khang',
+      description: 'Hành trình khám phá cuộc sống đầy thú vị và những câu chuyện cười ra nước mắt.',
+      embedId: 'yzB5LaPPK_M',
+      duration: '04:25'
+    },
+    {
+      id: 'clip_13',
+      title: 'Vườn ông Tám, ông Tám trong vườn | Lê Tuấn Khang',
+      description: 'Chuyện kể hài hước xung quanh khu vườn nhà ông Tám miền Tây.',
+      embedId: 'ys3_ai99DRw',
+      duration: '04:32'
+    },
+    {
+      id: 'clip_14',
+      title: 'Ẩm thực sinh tồn: Nướng cánh gà trên đá nung',
+      description: 'Cách chế biến món cánh gà nướng độc đáo bằng đá tự nhiên cực kỳ hấp dẫn.',
+      embedId: 'nYEnbF7ROWA',
+      duration: '10:02'
     }
   ];
 
